@@ -39,12 +39,15 @@ if __name__ == '__main__':
     fig = md.eeg_epochs.plot_sensors()
     fig = md.meg_epochs.plot_sensors()
 
-# %%
-
-# %%
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
+for key in ['1', '2', '3', '4', '5']:
+    evoked = md.eeg_epochs[key].average()
+    fig = evoked.plot_joint()
+
+# %%
+list(md.eeg_epochs)
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
