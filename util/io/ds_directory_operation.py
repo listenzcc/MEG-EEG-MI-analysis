@@ -25,23 +25,34 @@ from pathlib import Path
 from ..data import MyData
 from ..logging import logger
 
-ds_folder_pattern = 'S*_G33IA_*.ds'
+experiment_name_pattern = 'S*_G33IA_*.ds'
+noise_name_pattern = 'Noise-default*.ds'
 
 # %% ---- 2025-05-14 ------------------------
 # Function and class
-def find_ds_directories(root:Path) -> list:
+
+
+def find_ds_directories(root: Path, pattern: str = experiment_name_pattern) -> list:
     root = Path(root)
-    directories = list(root.rglob(ds_folder_pattern))
-    logger.info(f'Found ds directories: {len(directories)}')
+    directories = list(root.rglob(pattern))
+    directories = sorted(directories)
+    logger.info(f'Found ds directories: {directories}')
     return directories
 
-def read_ds_directory(directory:Path) -> MyData:
+
+def read_ds_directory(directory: Path) -> MyData:
     directory = Path(directory)
     logger.info(f'Read ds: {directory}')
     raw = mne.io.read_raw_ctf(directory)
+
+    noise_directory = find_ds_directories(
+        directory.parent, noise_name_pattern)[0]
+    noise_raw = mne.io.read_raw_ctf(noise_directory)
+
     events, event_id = mne.events_from_annotations(raw)
     md = MyData()
-    md.setattr(**dict(raw=raw, events=events, event_id=event_id))
+    md.setattr(**dict(raw=raw, noise_raw=noise_raw,
+               events=events, event_id=event_id))
     return md
 
 
@@ -49,10 +60,8 @@ def read_ds_directory(directory:Path) -> MyData:
 # Play ground
 
 
-
 # %% ---- 2025-05-14 ------------------------
 # Pending
-
 
 
 # %% ---- 2025-05-14 ------------------------

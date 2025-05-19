@@ -26,11 +26,11 @@ from .logging import logger
 # %% ---- 2025-05-14 ------------------------
 # Function and class
 class Events(Enum):
-    leftHand = '1'
-    rightHand = '2'
-    leftElbow = '3'
-    rightElbow = '4'
-    rest = '5'
+    Hand = '1',  # '手'
+    Wrist = '2',  # '腕'
+    Elbow = '3',  # '肘'
+    Shoulder = '4',  # '肩'
+    Rest = '5',  # '静息'
 
 
 class MEGPart:
@@ -68,6 +68,7 @@ class EEGPart:
 
 class MyData:
     raw = None
+    noise_raw = None
     events = None
     event_id = None
     meg_epochs = None
@@ -83,6 +84,19 @@ class MyData:
             if hasattr(self, k):
                 setattr(self, k, v)
                 logger.info(f'Set {k} = {v}')
+
+    def add_proj(self):
+        '''
+        Add the empty room projection to the raw data.
+        ! Since the empty room data only contains the MEG channels, the EEG channels are not included.
+        '''
+        empty_room_raw = self.noise_raw
+        empty_room_projs = mne.compute_proj_raw(empty_room_raw)
+        # fig = mne.viz.plot_projs_topomap(
+        #     empty_room_projs, colorbar=True, vlim="joint", info=empty_room_raw.info
+        # )
+        self.raw.add_proj(empty_room_projs)
+        logger.info(f'Add empty room proj: {empty_room_projs}')
 
     def convert_raw_to_epochs(self, **kwargs):
         '''

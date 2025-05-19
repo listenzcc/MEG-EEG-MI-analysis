@@ -32,26 +32,42 @@ if __name__ == '__main__':
     found = find_ds_directories('./rawdata')
     print(found)
     md = read_ds_directory(found[0])
+    md.add_proj()
     md.convert_raw_to_epochs(tmin=-1, tmax=5)
     print(md)
     print(md.eeg_epochs)
     print(md.meg_epochs)
-    fig = md.eeg_epochs.plot_sensors()
-    fig = md.meg_epochs.plot_sensors()
+    fig = md.eeg_epochs.plot_sensors(show_names=True)
+    fig = md.meg_epochs.plot_sensors(show_names=True)
 
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
+spectrum = md.raw.compute_psd()
+fig = spectrum.plot()
 for key in ['1', '2', '3', '4', '5']:
     evoked = md.eeg_epochs[key].average()
     fig = evoked.plot_joint()
 
 # %%
-list(md.eeg_epochs)
+evoked = md.meg_epochs['1'].average()
+fig = evoked.plot_joint()
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
+empty_room_raw = md.noise_raw
+empty_room_projs = mne.compute_proj_raw(empty_room_raw)
+fig = mne.viz.plot_projs_topomap(
+    empty_room_projs, colorbar=True, vlim="joint", info=empty_room_raw.info
+)
 
 # %%
+md.raw
+
+
+# %%
+mne.compute_proj_raw(md.noise_raw.pick_types(eeg=True))
+# %%
+md.noise_raw
 
 # %%
