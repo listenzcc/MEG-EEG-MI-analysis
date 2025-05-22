@@ -19,19 +19,23 @@ Functions:
 # %% ---- 2025-05-14 ------------------------
 # Requirements and constants
 import mne
+
+from rich import print
+from pathlib import Path
+from tqdm.auto import tqdm
+
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 
 # %% ---- 2025-05-14 ------------------------
 # Function and class
 
-
 # %% ---- 2025-05-14 ------------------------
 # Play ground
 if __name__ == '__main__':
     found = find_ds_directories('./rawdata')
     print(found)
-    md = read_ds_directory(found[0])
+    md = read_ds_directory(found[2])
     md.add_proj()
     md.convert_raw_to_epochs(tmin=-1, tmax=5)
     print(md)
