@@ -41,37 +41,35 @@ if __name__ == '__main__':
     print(md)
     print(md.eeg_epochs)
     print(md.meg_epochs)
+    print(md.noise_raw)
+
     fig = md.eeg_epochs.plot_sensors(show_names=True)
     fig = md.meg_epochs.plot_sensors(show_names=True)
 
+    fig = mne.viz.plot_projs_topomap(
+        md.empty_room_projs, colorbar=True, vlim="joint", info=md.empty_room_raw.info
+    )
+
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
-spectrum = md.raw.compute_psd()
-fig = spectrum.plot()
-for key in ['1', '2', '3', '4', '5']:
-    evoked = md.eeg_epochs[key].average()
-    fig = evoked.plot_joint()
+# spectrum = md.raw.compute_psd()
+# fig = spectrum.plot()
+# for key in ['1', '2', '3', '4', '5']:
+#     evoked = md.eeg_epochs[key].average()
+#     fig = evoked.plot_joint()
 
 # %%
-evoked = md.meg_epochs['1'].average()
-fig = evoked.plot_joint()
+# evoked = md.meg_epochs['1'].average()
+# fig = evoked.plot_joint()
 
 # %% ---- 2025-05-14 ------------------------
 # Pending
-empty_room_raw = md.noise_raw
-empty_room_projs = mne.compute_proj_raw(empty_room_raw)
-fig = mne.viz.plot_projs_topomap(
-    empty_room_projs, colorbar=True, vlim="joint", info=empty_room_raw.info
-)
 
 # %%
-md.raw
 
 
 # %%
-mne.compute_proj_raw(md.noise_raw.pick_types(eeg=True))
 # %%
-md.noise_raw
 
 # %%

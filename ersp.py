@@ -24,56 +24,83 @@ from rich import print
 from pathlib import Path
 from tqdm.auto import tqdm
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
-from util.analysis.ERSP_index import ERSP_analysis_with_pdf
+from util.analysis.ERSP_index import ERSP_analysis_with_saving
 
 
 # %% ---- 2025-05-14 ------------------------
 # Function and class
+subject_name = 'S01_20220119'
+
+subject_directory = Path('./rawdata', subject_name)
+result_directories = dict(
+    h5=Path('./data/h5', subject_name),
+    pdf=Path('./data/pdf', subject_name),
+)
+
+assert subject_directory.is_dir(
+), f'Subject directory not exists: {subject_directory}'
+
+for k, v in result_directories.items():
+    v.mkdir(parents=True, exist_ok=True)
 
 # %%
-found = find_ds_directories('./rawdata/S01_20220119')
+found = find_ds_directories(subject_directory)
 print(found)
 
 # %%
 # Read raw data and convert raw to epochs
-mds = [read_ds_directory(f) for f in found[-8:]]
+# mds = [read_ds_directory(f) for f in found[-8:]]
+mds = [read_ds_directory(f) for f in found[-2:]]
 dev_head_t = mds[0].raw.info['dev_head_t']
+event_id = []
 for md in mds:
     md.raw.info['dev_head_t'] = dev_head_t
     md.add_proj()
     md.convert_raw_to_epochs(tmin=-1, tmax=5, decim=6)
+    event_id = md.event_id
+
+print('*' * 80)
+print(f'Working with {len(mds)} data.')
 print(mds)
 
 # %%
 # Concatenate epochs
 selected_channels = ['C3', 'Cz', 'C4']
 for md in mds:
+    md.eeg_epochs.load_data()
     md.eeg_epochs.pick_channels(selected_channels)
 
 eeg_epochs = mne.concatenate_epochs(
     [md.eeg_epochs for md in tqdm(mds, 'Concatenate EEG epochs')])
 print(eeg_epochs)
 
-ERSP_analysis_with_pdf(
+ERSP_analysis_with_saving(
     epochs=eeg_epochs,
-    event_ids=md.event_id,
+    event_ids=event_id,
     selected_channels=selected_channels,
-    pdf_path=Path('./ERSP_eeg.pdf'))
+    pdf_path=result_directories['pdf'].joinpath('ERSP_eeg.pdf'),
+    df_path=result_directories['h5'].joinpath('ERSP_eeg-df.h5'),
+    tfr_path=result_directories['h5'].joinpath('ERSP_eeg-tfr.h5'),
+)
 
 # %%
-selected_channels = ['MLP34-4504', 'MZC01-4504', 'MRP34-4504']
+selected_channels = ['MLP34', 'MZC01', 'MRP34']
 for md in mds:
+    md.meg_epochs.load_data()
     md.meg_epochs.pick_channels(selected_channels)
 
 meg_epochs = mne.concatenate_epochs(
     [md.meg_epochs for md in tqdm(mds, 'Concatenate MEG epochs')])
 print(meg_epochs)
 
-ERSP_analysis_with_pdf(
+ERSP_analysis_with_saving(
     epochs=meg_epochs,
-    event_ids=md.event_id,
+    event_ids=event_id,
     selected_channels=selected_channels,
-    pdf_path=Path('./ERSP_meg.pdf'))
+    pdf_path=result_directories['pdf'].joinpath('ERSP_meg.pdf'),
+    df_path=result_directories['h5'].joinpath('ERSP_meg-df.h5'),
+    tfr_path=result_directories['h5'].joinpath('ERSP_meg-tfr.h5'),
+)
 
 # %%
 

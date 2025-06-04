@@ -21,6 +21,7 @@ Functions:
 # Requirements and constants
 import mne
 import mne.io.ctf
+from typing import Union
 from pathlib import Path
 from ..data import MyData
 from ..logging import logger
@@ -32,7 +33,7 @@ noise_name_pattern = 'Noise-default*.ds'
 # Function and class
 
 
-def find_ds_directories(root: Path, pattern: str = experiment_name_pattern) -> list:
+def find_ds_directories(root: Union[Path, str], pattern: str = experiment_name_pattern) -> list:
     root = Path(root)
     directories = list(root.rglob(pattern))
     directories = sorted(directories)

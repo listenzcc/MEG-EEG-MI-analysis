@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-05-14 ------------------------
 # Requirements and constants
+from typing import Optional
 import mne
 from enum import Enum
 from .logging import logger
@@ -67,12 +68,14 @@ class EEGPart:
 
 
 class MyData:
-    raw = None
-    noise_raw = None
-    events = None
-    event_id = None
-    meg_epochs = None
-    eeg_epochs = None
+    raw: mne.io.Raw
+    noise_raw: mne.io.Raw
+    events: list
+    event_id: dict
+    meg_epochs: mne.Epochs
+    eeg_epochs: mne.Epochs
+    empty_room_raw: mne.io.Raw
+    empty_room_projs: list
 
     def setattr(self, **kwargs):
         '''
@@ -84,6 +87,9 @@ class MyData:
             if hasattr(self, k):
                 setattr(self, k, v)
                 logger.info(f'Set {k} = {v}')
+            else:
+                setattr(self, k, v)
+                logger.warning(f'Override {k} = {v}')
 
     def add_proj(self):
         '''
@@ -92,10 +98,9 @@ class MyData:
         '''
         empty_room_raw = self.noise_raw
         empty_room_projs = mne.compute_proj_raw(empty_room_raw)
-        # fig = mne.viz.plot_projs_topomap(
-        #     empty_room_projs, colorbar=True, vlim="joint", info=empty_room_raw.info
-        # )
         self.raw.add_proj(empty_room_projs)
+        self.empty_room_raw = empty_room_raw
+        self.empty_room_projs = empty_room_projs
         logger.info(f'Add empty room proj: {empty_room_projs}')
 
     def convert_raw_to_epochs(self, **kwargs):
@@ -105,8 +110,13 @@ class MyData:
         :param **kwargs: The kwargs in the mne.Epochs(raw, **kwargs).
         '''
         # MEG Epochs
-        self.meg_epochs = mne.Epochs(
+        epochs = mne.Epochs(
             self.raw, self.events, self.event_id, picks=MEGPart.data_ch_names, **kwargs)
+        ch_names_with_4504 = epochs.ch_names
+        rename = {name: name.split('-')[0] for name in ch_names_with_4504}
+        epochs.rename_channels(rename)
+        logger.info(f'Rename MEG channels: {rename}')
+        self.meg_epochs = epochs
         logger.info(f'Loaded MEG Epochs {self.meg_epochs}')
 
         # EEG Epochs
