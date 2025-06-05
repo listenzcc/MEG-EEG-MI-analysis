@@ -19,6 +19,7 @@ Functions:
 # %% ---- 2025-05-14 ------------------------
 # Requirements and constants
 import mne
+import argparse
 
 from rich import print
 from pathlib import Path
@@ -29,9 +30,15 @@ from util.analysis.ERSP_index import ERSP_analysis_with_saving
 
 # %% ---- 2025-05-14 ------------------------
 # Function and class
-subject_name = 'S01_20220119'
+parse = argparse.ArgumentParser('ERSP Analysis')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+print(args.subject_dir)
 
-subject_directory = Path('./rawdata', subject_name)
+# subject_directory = Path('./rawdata/S01_20220119')
+subject_directory = Path(args.subject_dir)
+subject_name = subject_directory.name
+
 result_directories = dict(
     h5=Path('./data/h5', subject_name),
     pdf=Path('./data/pdf', subject_name),
@@ -50,7 +57,7 @@ print(found)
 # %%
 # Read raw data and convert raw to epochs
 # mds = [read_ds_directory(f) for f in found[-8:]]
-mds = [read_ds_directory(f) for f in found[-2:]]
+mds = [read_ds_directory(f) for f in found[-8:]]
 dev_head_t = mds[0].raw.info['dev_head_t']
 event_id = []
 for md in mds:

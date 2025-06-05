@@ -66,7 +66,7 @@ def ERSP_analysis_with_saving(epochs, event_ids, selected_channels, pdf_path, df
     # How to read: df = pd.read_hdf(df_path)
     df.to_hdf(df_path, key='df', mode='w', format='table')
     # How to read: tfr = mne.time_frequency.read_tfrs(tfr_path)
-    tfr.save(tfr_path)
+    tfr.save(tfr_path, overwrite=True)
 
     with PdfPages(pdf_path) as pdf:
         num_channels = len(selected_channels)

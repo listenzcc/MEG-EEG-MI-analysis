@@ -110,8 +110,12 @@ class MyData:
         :param **kwargs: The kwargs in the mne.Epochs(raw, **kwargs).
         '''
         # MEG Epochs
+        # ! Dynamic acquire meg ch_names, since they may change.
+        epochs = mne.Epochs(self.raw, self.events,
+                            self.event_id, picks=['meg'])
+        meg_ch_names = epochs.ch_names
         epochs = mne.Epochs(
-            self.raw, self.events, self.event_id, picks=MEGPart.data_ch_names, **kwargs)
+            self.raw, self.events, self.event_id, picks=meg_ch_names, **kwargs)
         ch_names_with_4504 = epochs.ch_names
         rename = {name: name.split('-')[0] for name in ch_names_with_4504}
         epochs.rename_channels(rename)
