@@ -18,7 +18,6 @@ Functions:
 
 # %% ---- 2025-05-14 ------------------------
 # Requirements and constants
-from typing import Optional
 import mne
 from enum import Enum
 from .logging import logger

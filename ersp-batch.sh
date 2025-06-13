@@ -1,0 +1,10 @@
+python ersp.py -s ./rawdata/S01_20220119 &
+python ersp.py -s ./rawdata/S02_20220315 &
+python ersp.py -s ./rawdata/S03_20220322 &
+python ersp.py -s ./rawdata/S04_20220329 &
+python ersp.py -s ./rawdata/S05_20220426 &
+python ersp.py -s ./rawdata/S06_20230627 &
+python ersp.py -s ./rawdata/S07_20231220 &
+python ersp.py -s ./rawdata/S08_20231221 &
+python ersp.py -s ./rawdata/S09_20240110 &
+python ersp.py -s ./rawdata/S10_20240111 &
