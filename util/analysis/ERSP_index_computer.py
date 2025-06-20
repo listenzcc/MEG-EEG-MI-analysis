@@ -71,7 +71,9 @@ def ERSP_analysis_with_saving(epochs, event_ids, selected_channels, pdf_path, df
         ["condition", "freq", "time", "channel", "ch_type"], observed=True)["value"].mean().reset_index()
     _df.to_hdf(df_path, key='df', mode='w', format='table')
     # How to read: tfr = mne.time_frequency.read_tfrs(tfr_path)
-    tfr.save(tfr_path, overwrite=True)
+    # tfr.save(tfr_path, overwrite=True)
+
+    return
 
     with PdfPages(pdf_path) as pdf:
         num_channels = len(selected_channels)

@@ -40,8 +40,8 @@ subject_directory = Path(args.subject_dir)
 subject_name = subject_directory.name
 
 result_directories = dict(
-    h5=Path('./data/h5', subject_name),
-    pdf=Path('./data/pdf', subject_name),
+    h5=Path('./data/erd/h5', subject_name),
+    pdf=Path('./data/erd/pdf', subject_name),
 )
 
 assert subject_directory.is_dir(

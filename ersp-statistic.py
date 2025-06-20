@@ -43,12 +43,12 @@ def find_files(root: Path, pattern: 'str') -> list:
 
 # %% ---- 2025-06-05 ------------------------
 # Play ground
-found = find_files(Path('./data/h5'), 'ERSP_eeg-df.h5')
+found = find_files(Path('./data/erd/h5'), 'ERSP_eeg-df.h5')
 ERSP_eeg_dfs = [pd.read_hdf(f)
                 for f in tqdm(found, 'Fetch EEG Data')]
 print(ERSP_eeg_dfs[0])
 
-found = find_files(Path('./data/h5'), 'ERSP_meg-df.h5')
+found = find_files(Path('./data/erd/h5'), 'ERSP_meg-df.h5')
 ERSP_meg_dfs = [pd.read_hdf(f)
                 for f in tqdm(found, 'Fetch MEG Data')]
 print(ERSP_meg_dfs[0])
@@ -56,8 +56,10 @@ print(ERSP_meg_dfs[0])
 
 # %%
 # 确保 time 和 freq 是数值型
-output_fname = 'ERSP-EEG.png'
 df = pd.concat(ERSP_eeg_dfs, axis=0).copy()
+output_fname = 'ERSP-EEG.png'
+output_path = Path('./data/erd/img', output_fname)
+output_path.parent.mkdir(parents=True, exist_ok=True)
 
 df["time"] = pd.to_numeric(df["time"])
 df["freq"] = pd.to_numeric(df["freq"])
@@ -83,6 +85,12 @@ for i_cond, condition in enumerate(conditions):
         subset = subset.groupby(['condition', 'freq', 'time', 'channel', 'ch_type'], observed=True)[
             'value'].mean().reset_index()
 
+        # Crop the time between (-2, 5) seconds
+        subset = subset.query('time <= 5').query('time >= -2')
+
+        # Convert the value into db
+        subset['value'] *= 10
+
         # 透视数据：行=freq，列=time，值=value
         pivot_table = subset.pivot(
             index="freq", columns="time", values="value")
@@ -92,13 +100,13 @@ for i_cond, condition in enumerate(conditions):
         sns.heatmap(
             pivot_table,
             cmap="RdBu_r",  # 红蓝渐变色
-            vmin=-1,        # 颜色范围最小值
-            vmax=1,        # 颜色范围最大值
+            vmin=-10,        # 颜色范围最小值
+            vmax=10,        # 颜色范围最大值
             cbar_kws={"label": "Value"},
             ax=ax
         )
         ax.set_xticks([pivot_table.columns.get_loc(e)
-                      for e in [0, 1, 2, 3, 4]], labels=[0, 1, 2, 3, 4])
+                      for e in [-1, 0, 1, 2, 3, 4, 5]], labels=[-1, 0, 1, 2, 3, 4, 5])
 
         ax.invert_yaxis()
 
@@ -108,7 +116,7 @@ for i_cond, condition in enumerate(conditions):
         ax.set_ylabel("Frequency (Hz)")
 
 plt.tight_layout()
-plt.savefig(output_fname)
+plt.savefig(output_path, bbox_inches='tight')
 plt.show()
 
 # %%
