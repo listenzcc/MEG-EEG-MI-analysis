@@ -55,11 +55,13 @@ table = concat_h5_files(found)
 table['value'] *= 10
 print(table)
 
-mean = table.groupby(['condition', 'time', 'channel', 'ch_type'], observed=True)[
+averaged = table.groupby(['condition', 'time', 'channel', 'ch_type'], observed=True)[
     'value'].mean().reset_index()
-mean['subject'] = 'Averaged'
-print(mean)
+averaged['subject'] = 'Averaged'
+print(averaged)
 
+table = pd.concat([table, averaged])
+print(table)
 
 # %% ---- 2025-06-23 ------------------------
 # Pending
