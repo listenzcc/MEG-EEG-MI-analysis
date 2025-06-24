@@ -102,9 +102,9 @@ class MyData:
         self.empty_room_projs = empty_room_projs
         logger.info(f'Add empty room proj: {empty_room_projs}')
 
-    def convert_raw_to_epochs(self, **kwargs):
+    def generate_epochs(self, **kwargs):
         '''
-        Convert raw into eeg- and meg-epochs with given kwargs
+        Generate eeg- and meg-epochs from raw with given kwargs
 
         :param **kwargs: The kwargs in the mne.Epochs(raw, **kwargs).
         '''

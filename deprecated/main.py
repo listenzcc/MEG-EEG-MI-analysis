@@ -37,7 +37,7 @@ if __name__ == '__main__':
     print(found)
     md = read_ds_directory(found[2])
     md.add_proj()
-    md.convert_raw_to_epochs(tmin=-1, tmax=5)
+    md.generate_epochs(tmin=-1, tmax=5)
     print(md)
     print(md.eeg_epochs)
     print(md.meg_epochs)

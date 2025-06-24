@@ -34,6 +34,9 @@ noise_name_pattern = 'Noise-default*.ds'
 
 
 def find_ds_directories(root: Union[Path, str], pattern: str = experiment_name_pattern) -> list:
+    '''
+    Find the .ds directories under the root.
+    '''
     root = Path(root)
     directories = list(root.rglob(pattern))
     directories = sorted(directories)
@@ -42,6 +45,9 @@ def find_ds_directories(root: Union[Path, str], pattern: str = experiment_name_p
 
 
 def read_ds_directory(directory: Path) -> MyData:
+    '''
+    Read the .ds directory to generate MyData object.
+    '''
     directory = Path(directory)
     logger.info(f'Read ds: {directory}')
     raw = mne.io.read_raw_ctf(directory)

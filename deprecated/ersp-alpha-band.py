@@ -57,7 +57,7 @@ def read_epochs_from_directory(directory: Path):
     for md in mds:
         md.raw.info['dev_head_t'] = dev_head_t
         md.add_proj()
-        md.convert_raw_to_epochs(tmin=-3, tmax=6, decim=6)
+        md.generate_epochs(tmin=-3, tmax=6, decim=6)
 
     ts = []
     for md in tqdm(mds, 'Load MEG&EEG epochs'):

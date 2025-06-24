@@ -63,7 +63,7 @@ event_id = []
 for md in mds:
     md.raw.info['dev_head_t'] = dev_head_t
     md.add_proj()
-    md.convert_raw_to_epochs(tmin=-3, tmax=6, decim=6)
+    md.generate_epochs(tmin=-3, tmax=6, decim=6)
     event_id = md.event_id
 
 print('*' * 80)
