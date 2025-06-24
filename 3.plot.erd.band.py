@@ -75,7 +75,7 @@ def append_averaged_subject(df: pd.DataFrame):
 # Play ground
 
 class EEG_Opt:
-    vmin = -1
+    vmin = -0.5
     vmax = 0.5
     vcenter = 0
     cmap = 'RdBu'
@@ -86,7 +86,7 @@ class EEG_Opt:
 
 
 class MEG_Opt:
-    vmin = -1
+    vmin = -0.5
     vmax = 0.5
     vcenter = 0
     cmap = 'RdBu'
