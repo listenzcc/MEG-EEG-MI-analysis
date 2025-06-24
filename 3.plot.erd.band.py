@@ -1,11 +1,12 @@
 """
-File: 2.plot.ersp.py
+File: 3.plot.erd.band.py
 Author: Chuncheng Zhang
 Date: 2025-06-24
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    Plot ERSP in single or averaged subject level.
+    Plot ERD in band in single and averaged subject level.
+    Use all channels
 
 Functions:
     1. Requirements and constants
@@ -24,7 +25,6 @@ data_directory = Path('./data/TFR')
 compile = re.compile(
     r'^(?P<me>[a-z]+)-(?P<mode>[a-z]+)-(?P<evt>\d+)-average-tfr.h5')
 
-
 # %% ---- 2025-06-24 ------------------------
 # Function and class
 
@@ -39,16 +39,20 @@ def read_tfr(path: Path):
     return tfr
 
 
-def to_df(path: Path, channels: list):
+def to_df(path: Path, channels: list = []):
     '''
     Read TFR from path and pick channels.
+    If channels list is empty, use all channels.
     Return df with columns: freq, time, channel, ch_type, value, name, evt
     '''
     name = path.name
     dct = compile.search(name).groupdict()
     subject_name = path.parent.name
     tfr = read_tfr(path)
-    tfr.pick(channels)
+
+    if len(channels) > 0:
+        tfr.pick(channels)
+
     df = tfr.to_data_frame(long_format=True)
     df['name'] = subject_name
     df['evt'] = dct['evt']
@@ -69,35 +73,53 @@ def append_averaged_subject(df: pd.DataFrame):
 
 # %% ---- 2025-06-24 ------------------------
 # Play ground
+
 class EEG_Opt:
-    channels = ['C3', 'Cz', 'C4']
+    vmin = -1
+    vmax = 0.5
+    vcenter = 0
+    cmap = 'RdBu'
     pattern = 'eeg-logratio-*-average-tfr.h5'
-    scatter_kwargs = dict(cmap='viridis', marker='s', vmin=-1, vmax=0.5)
-    output_fname = 'data/img/ERSP-example-channels/eeg-evt-{}.png'
+    output_fname = 'data/img/ERD-band/eeg-{}Band.png'
+    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 
 
 class MEG_Opt:
-    channels = ['MLC42', 'MZC03', 'MRC42']
+    vmin = -1
+    vmax = 0.5
+    vcenter = 0
+    cmap = 'RdBu'
     pattern = 'meg-logratio-*-average-tfr.h5'
-    scatter_kwargs = dict(cmap='viridis', marker='s', vmin=-1, vmax=0.5)
-    output_fname = 'data/img/ERSP-example-channels/meg-evt-{}.png'
+    output_fname = 'data/img/ERD-band/meg-{}Band.png'
+    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 
 
 for opt in [EEG_Opt, MEG_Opt]:
-    Path(opt.output_fname.format(0)).parent.mkdir(parents=True, exist_ok=True)
+    Path(opt.output_fname.format('')).parent.mkdir(parents=True, exist_ok=True)
     found = find_tfr_files(opt.pattern)
-    dfs = [to_df(p, opt.channels) for p in tqdm(found, 'Read TFR')]
-    df = pd.concat(dfs).query('time <= 5.0')
-    df = append_averaged_subject(df)
-    print(df)
+    dfs = [to_df(p) for p in tqdm(found, 'Read TFR')]
+    raw_df = pd.concat(dfs)
 
-    evts = sorted(df['evt'].unique())
-    names = sorted(df['name'].unique())
-    rows = len(names)
-    cols = len(opt.channels)
-    print(names, evts)
+    for band_name, band in zip(['alpha', 'beta'], [(8, 13), (15, 25)]):
+        query = ' & '.join(
+            ['time <= 5.0', f'freq<={band[1]}', f'freq>={band[0]}'])
+        df = raw_df.copy().query(query)
 
-    for evt in evts:
+        # Average across freqs
+        columns = [c for c in df.columns if c not in ['freq', 'value']]
+        df = df.groupby(columns, observed=True)['value'].mean().reset_index()
+
+        df = append_averaged_subject(df)
+        print(df)
+
+        evts = sorted(df['evt'].unique())
+        names = sorted(df['name'].unique())
+        rows = len(names)
+        cols = len(evts)
+        print(names, evts)
+
         fig_width = 4 * cols  # inch
         fig_height = 4 * rows  # inch
         fig, axes = plt.subplots(
@@ -105,21 +127,21 @@ for opt in [EEG_Opt, MEG_Opt]:
             figsize=(fig_width, fig_height),
             gridspec_kw={"width_ratios": [10] * cols + [1]})
 
-        for name, chn in tqdm(itertools.product(names, opt.channels), 'Plotting'):
+        for name, evt in tqdm(itertools.product(names, evts), 'Plotting'):
             i = names.index(name)
-            j = opt.channels.index(chn)
+            j = evts.index(evt)
             ax = axes[i, j]
 
             query = ' & '.join(
-                [f'name=="{name}"', f'evt=="{evt}"', f'channel=="{chn}"'])
+                [f'name=="{name}"', f'evt=="{evt}"'])
             _df = df.query(query)
 
-            ax.scatter(_df['time'], _df['freq'],
+            ax.scatter(_df['time'], _df['channel'],
                        c=_df['value'], **opt.scatter_kwargs)
-            ax.set_title(f'ERSP @chn: {chn}, @sub: {name}')
+            ax.set_title(f'ERD @evt: {evt}, @sub: {name}')
             ax.set_xlabel('Time (s)')
             if j == 0:
-                ax.set_ylabel(f'Freq (Hz)')
+                ax.set_ylabel(f'Channel')
             else:
                 ax.set_yticks([])
 
@@ -128,7 +150,7 @@ for opt in [EEG_Opt, MEG_Opt]:
                          orientation='vertical').ax.set_yscale('linear')
 
         fig.tight_layout()
-        f = opt.output_fname.format(evt)
+        f = opt.output_fname.format(band_name)
         fig.savefig(f)
         logger.info(f'Wrote: {f}')
 

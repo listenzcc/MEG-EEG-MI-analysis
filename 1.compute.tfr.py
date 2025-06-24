@@ -106,7 +106,7 @@ def tfr_apply_baseline(tfr: mne.time_frequency.EpochsTFR, mode: str = 'ratio'):
     Perform baseline correction by
     - subtracting the mean of baseline values (‘mean’)
     - dividing by the mean of baseline values (‘ratio’)
-    - dividing by the mean of baseline values and taking the log (‘logratio’)
+    - dividing by the mean of baseline values and taking the log (base 10) (‘logratio’)
     - subtracting the mean of baseline values followed by dividing by the mean of baseline values (‘percent’)
     - subtracting the mean of baseline values and dividing by the standard deviation of baseline values (‘zscore’)
     - dividing by the mean of baseline values, taking the log, and dividing by the standard deviation of log baseline values (‘zlogratio’)
