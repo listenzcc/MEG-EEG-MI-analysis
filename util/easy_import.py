@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.backends.backend_pdf import PdfPages
 
-from rich import print
+from rich import print, inspect
 from pathlib import Path
 from tqdm.auto import tqdm
 
