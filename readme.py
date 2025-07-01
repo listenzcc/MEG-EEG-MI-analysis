@@ -265,6 +265,9 @@ fig.show()
 
 # In[21]:
 
+# Require
+# export MNE_3D_OPTION_MULTI_SAMPLES=1
+# export MNE_3D_OPTION_ANTIALIAS=false
 
 mne.viz.plot_alignment(
     raw.info,
@@ -274,7 +277,7 @@ mne.viz.plot_alignment(
     dig='fiducials',
     meg=["helmet", "sensors"],
     # eeg=['original', 'projected'],
-    eeg=[],
+    eeg=True,
     coord_frame='head',
     subjects_dir=SUBJECTS_DIR,
     surfaces=dict(brain=0.2, outer_skull=0.1, head=None),

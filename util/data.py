@@ -39,6 +39,57 @@ class MEGPart:
                      'MLT51-4504', 'MLT52-4504', 'MLT53-4504', 'MLT54-4504', 'MLT55-4504', 'MLT56-4504', 'MLT57-4504', 'MRC11-4504', 'MRC12-4504', 'MRC13-4504', 'MRC14-4504', 'MRC15-4504', 'MRC16-4504', 'MRC17-4504', 'MRC21-4504', 'MRC22-4504', 'MRC23-4504', 'MRC24-4504', 'MRC25-4504', 'MRC31-4504', 'MRC32-4504', 'MRC41-4504', 'MRC42-4504', 'MRC51-4504', 'MRC52-4504', 'MRC53-4504', 'MRC54-4504', 'MRC55-4504', 'MRC61-4504', 'MRC62-4504', 'MRC63-4504', 'MRF11-4504', 'MRF12-4504', 'MRF13-4504', 'MRF14-4504', 'MRF21-4504', 'MRF22-4504', 'MRF23-4504', 'MRF24-4504', 'MRF25-4504', 'MRF31-4504', 'MRF32-4504', 'MRF33-4504', 'MRF34-4504', 'MRF35-4504', 'MRF41-4504', 'MRF42-4504', 'MRF43-4504', 'MRF44-4504', 'MRF45-4504', 'MRF46-4504', 'MRF51-4504', 'MRF52-4504', 'MRF53-4504', 'MRF54-4504', 'MRF55-4504', 'MRF56-4504', 'MRF61-4504', 'MRF62-4504', 'MRF63-4504', 'MRF64-4504', 'MRF65-4504', 'MRF66-4504', 'MRF67-4504', 'MRO11-4504', 'MRO12-4504', 'MRO13-4504', 'MRO14-4504', 'MRO21-4504', 'MRO22-4504', 'MRO23-4504', 'MRO24-4504', 'MRO31-4504', 'MRO32-4504', 'MRO33-4504', 'MRO34-4504', 'MRO41-4504', 'MRO42-4504', 'MRO43-4504', 'MRO44-4504', 'MRO51-4504', 'MRO52-4504', 'MRO53-4504', 'MRP11-4504', 'MRP12-4504', 'MRP21-4504', 'MRP22-4504', 'MRP23-4504', 'MRP31-4504', 'MRP32-4504', 'MRP33-4504', 'MRP34-4504', 'MRP35-4504', 'MRP41-4504', 'MRP42-4504', 'MRP43-4504', 'MRP44-4504', 'MRP45-4504', 'MRP51-4504', 'MRP52-4504', 'MRP53-4504', 'MRP54-4504', 'MRP55-4504', 'MRP56-4504', 'MRP57-4504', 'MRT11-4504', 'MRT12-4504', 'MRT13-4504', 'MRT14-4504', 'MRT15-4504', 'MRT16-4504', 'MRT21-4504', 'MRT22-4504', 'MRT24-4504', 'MRT25-4504', 'MRT26-4504', 'MRT27-4504', 'MRT31-4504', 'MRT32-4504', 'MRT33-4504', 'MRT34-4504', 'MRT35-4504', 'MRT36-4504', 'MRT37-4504', 'MRT41-4504', 'MRT42-4504', 'MRT43-4504', 'MRT44-4504', 'MRT45-4504', 'MRT46-4504', 'MRT47-4504', 'MRT51-4504', 'MRT52-4504', 'MRT53-4504', 'MRT54-4504', 'MRT55-4504', 'MRT56-4504', 'MRT57-4504', 'MZC01-4504', 'MZC02-4504', 'MZC03-4504', 'MZC04-4504', 'MZF01-4504', 'MZF02-4504', 'MZF03-4504', 'MZO01-4504', 'MZO02-4504', 'MZO03-4504', 'MZP01-4504']
 
 
+def mk_ch_dig_mapping():
+    _table = {
+        # L1
+        'fz': 308,
+        'f1': 329,
+        'f3': 307,
+        'f5': 328,
+        'f2': 330,
+        'f4': 309,
+        'f6': 331,
+        # L2
+        'fcz': 338,
+        'fc1': 337,
+        'fc3': 336,
+        'fc5': 335,
+        'fc2': 339,
+        'fc4': 340,
+        'fc6': 341,
+        # L3
+        'cz': 313,
+        'c1': 346,
+        'c3': 312,
+        'c5': 345,
+        'c2': 347,
+        'c4': 314,
+        'c6': 348,
+        # L4
+        'cpz': 353,
+        'cp1': 352,
+        'cp3': 351,
+        'cp5': 350,
+        'cp2': 354,
+        'cp4': 355,
+        'cp6': 356,
+        # L5
+        'pz': 318,
+        'p1': 359,
+        'p3': 317,
+        'p5': 358,
+        'p2': 360,
+        'p4': 319,
+        'p6': 361,
+    }
+
+    def _ch_name(s):
+        s = s.strip()
+        return s[:-1].upper() + s[-1]
+
+    return {_ch_name(k): v for k, v in _table.items()}
+
+
 def mk_good_eeg_ch_names():
     ch_names = '''
         f5,  f3,  f1,  fz,  f2,  f4,  f6,
@@ -62,8 +113,8 @@ class EEGPart:
     standard_montage_name = 'standard_1020'
 
     # ch_names in the data
-    data_ch_names = ['EEG001-4504', 'EEG002-4504', 'EEG003-4504', 'EEG004-4504', 'EEG005-4504', 'EEG006-4504', 'EEG007-4504', 'EEG008-4504', 'EEG009-4504', 'EEG010-4504', 'EEG011-4504', 'EEG012-4504', 'EEG013-4504', 'EEG014-4504', 'EEG015-4504', 'EEG016-4504', 'EEG017-4504', 'EEG018-4504', 'EEG019-4504', 'EEG020-4504', 'EEG021-4504', 'EEG022-4504', 'EEG023-4504', 'EEG024-4504', 'EEG025-4504', 'EEG026-4504', 'EEG027-4504', 'EEG028-4504', 'EEG029-4504', 'EEG030-4504', 'EEG031-4504',
-                     'EEG032-4504', 'EEG033-4504', 'EEG034-4504', 'EEG035-4504', 'EEG036-4504', 'EEG037-4504', 'EEG038-4504', 'EEG039-4504', 'EEG040-4504', 'EEG041-4504', 'EEG042-4504', 'EEG043-4504', 'EEG044-4504', 'EEG045-4504', 'EEG046-4504', 'EEG047-4504', 'EEG048-4504', 'EEG049-4504', 'EEG050-4504', 'EEG051-4504', 'EEG052-4504', 'EEG053-4504', 'EEG054-4504', 'EEG055-4504', 'EEG056-4504', 'EEG057-4504', 'EEG058-4504', 'EEG059-4504', 'EEG060-4504', 'EEG061-4504', 'EEG062-4504', 'EEG063-4504', 'EEG064-4504']
+    data_ch_names = ['EEG001-4504', 'EEG002-4504', 'EEG003-4504', 'EEG004-4504', 'EEG005-4504', 'EEG006-4504', 'EEG007-4504', 'EEG008-4504', 'EEG009-4504', 'EEG010-4504', 'EEG011-4504', 'EEG012-4504', 'EEG013-4504', 'EEG014-4504', 'EEG015-4504', 'EEG016-4504', 'EEG017-4504', 'EEG018-4504', 'EEG019-4504', 'EEG020-4504', 'EEG021-4504', 'EEG022-4504', 'EEG023-4504', 'EEG024-4504', 'EEG025-4504', 'EEG026-4504', 'EEG027-4504', 'EEG028-4504', 'EEG029-4504', 'EEG030-4504', 'EEG031-4504', 'EEG032-4504',
+                     'EEG033-4504', 'EEG034-4504', 'EEG035-4504', 'EEG036-4504', 'EEG037-4504', 'EEG038-4504', 'EEG039-4504', 'EEG040-4504', 'EEG041-4504', 'EEG042-4504', 'EEG043-4504', 'EEG044-4504', 'EEG045-4504', 'EEG046-4504', 'EEG047-4504', 'EEG048-4504', 'EEG049-4504', 'EEG050-4504', 'EEG051-4504', 'EEG052-4504', 'EEG053-4504', 'EEG054-4504', 'EEG055-4504', 'EEG056-4504', 'EEG057-4504', 'EEG058-4504', 'EEG059-4504', 'EEG060-4504', 'EEG061-4504', 'EEG062-4504', 'EEG063-4504', 'EEG064-4504']
 
 
 class MyData:
@@ -85,10 +136,10 @@ class MyData:
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
-                logger.info(f'Set {k} = {v}')
+                logger.warning(f'Override {k} = {v}')
             else:
                 setattr(self, k, v)
-                logger.warning(f'Override {k} = {v}')
+                logger.info(f'Set {k} = {v}')
 
     def add_proj(self):
         '''
@@ -112,6 +163,8 @@ class MyData:
         # ! Dynamic acquire meg ch_names, since they may change.
         epochs = mne.Epochs(self.raw, self.events,
                             self.event_id, picks=['meg'])
+        info = epochs.info
+
         meg_ch_names = epochs.ch_names
         epochs = mne.Epochs(
             self.raw, self.events, self.event_id, picks=meg_ch_names, **kwargs)
@@ -131,8 +184,23 @@ class MyData:
         epochs.rename_channels(rename)
         logger.info(f'Rename EEG channels: {rename}')
 
-        epochs.set_montage(EEGPart.standard_montage_name, on_missing='warn')
-        logger.info(f'Set EEG montage: {EEGPart.standard_montage_name}')
+        # Set EEG chs location
+        use_dig = True
+        if use_dig:
+            ch_dig_mapping = mk_ch_dig_mapping()
+            # Use digits as EEG chs location
+            for ch in epochs.info['chs']:
+                trg_ident = ch_dig_mapping[ch['ch_name']]
+                for dig in info['dig']:
+                    if dig['ident'] == trg_ident:
+                        ch['loc'][:3] = dig['r']
+                        logger.debug(f'Locate {ch}\'loc into {dig}')
+                        break
+        else:
+            # Use standard montage
+            epochs.set_montage(
+                EEGPart.standard_montage_name, on_missing='warn')
+            logger.info(f'Set EEG montage: {EEGPart.standard_montage_name}')
 
         self.eeg_epochs = epochs
         logger.info(f'Loaded EEG Epochs {self.eeg_epochs}')
