@@ -2,8 +2,7 @@
 
 # In[1]:
 
-
-from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
+from util.read_example_raw import md
 from util.easy_import import *
 
 data_directory = Path('./data/TFR')
@@ -15,6 +14,11 @@ cache_dir.mkdir(exist_ok=True, parents=True)
 
 pdf_directory = Path('./data/pdf/ERD-jointPlot')
 pdf_directory.mkdir(exist_ok=True, parents=True)
+
+epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 6*2}
+md.generate_epochs(**epochs_kwargs)
+print(md.eeg_epochs)
+print(md.meg_epochs)
 
 # In[2]:
 
@@ -62,15 +66,6 @@ def append_averaged_subject(df: pd.DataFrame):
 
 
 # In[3]:
-
-
-subject_directory = Path('./rawdata/S01_20220119')
-found = find_ds_directories(subject_directory)
-md = read_ds_directory(found[-1])
-epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 6*2}
-md.generate_epochs(**epochs_kwargs)
-print(md.eeg_epochs)
-print(md.meg_epochs)
 
 
 # In[ ]:

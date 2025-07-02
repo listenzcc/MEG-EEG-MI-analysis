@@ -25,48 +25,148 @@ Functions:
 
 # %% ---- 2025-06-27 ------------------------
 # Requirements and constants
-from util.easy_import import *
+import io
+from contextlib import redirect_stdout
 
-SUBJECT = 'fsaverage'
-SUBJECT_DIR = mne.datasets.fetch_fsaverage()
-SUBJECTS_DIR = SUBJECT_DIR.parent
-print(SUBJECTS_DIR, SUBJECT)
+from util.easy_import import *
+from util.read_example_raw import md
+from util.plotly_template import setup_plotly_theme, px, go
+
+md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
+raw = md.raw
+eeg_epochs = md.eeg_epochs
+meg_epochs = md.meg_epochs
+print(raw)
+print(eeg_epochs)
+print(meg_epochs)
+
+n_jobs = 32
+
 
 # %% ---- 2025-06-27 ------------------------
 # Function and class
 
 
+class SubjectFsaverage:
+    # Local
+    local_cache = Path('./data/fsaverage')
+
+    # MNE fsaverage
+    subject = 'fsaverage'
+    subject_dir = mne.datasets.fetch_fsaverage()
+    subjects_dir = subject_dir.parent
+    src_path = subject_dir.joinpath('bem', 'fsaverage-ico-5-src.fif')
+    bem_path = subject_dir.joinpath(
+        'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
+    fwd_fname_template = 'fsaverage-{}-fwd.fif'
+
+    # MNE trans
+    trans = 'fsaverage'  # MNE has a built-in fsaverage transformation
+
+    def __init__(self):
+        self.local_cache.mkdir(exist_ok=True, parents=True)
+
+    def check_files(self):
+        print('---- Check files ----')
+        files = [self.src_path, self.bem_path]
+        dirs = [self.subject_dir, self.local_cache]
+        [print(e.is_file(), e) for e in files]
+        [print(e.is_dir(), e) for e in dirs]
+
+    def pipeline(self):
+        self.check_files()
+        self.read_source_spaces()
+        self.read_bem_solution()
+
+    def read_forward_solution(self, info, t: str):
+        p = self.local_cache.joinpath(self.fwd_fname_template.format(t))
+        if t.lower() == 'meg':
+            eeg = False
+            meg = True
+        elif t.lower() == 'eeg':
+            eeg = True
+            meg = False
+
+        try:
+            fwd = mne.read_forward_solution(p)
+        except Exception:
+            fwd = mne.make_forward_solution(info, trans=self.trans, src=self.src_path,
+                                            bem=self.bem_path, eeg=eeg, meg=meg, mindist=5.0, n_jobs=n_jobs)
+            mne.write_forward_solution(p, fwd)
+        return fwd
+
+    def read_source_spaces(self):
+        self.src = mne.read_source_spaces(self.src_path)
+        return self.src
+
+    def read_bem_solution(self):
+        self.bem = mne.read_bem_solution(self.bem_path)
+        return self.bem
+
+    def make_inverse_operator(self, info, fwd, noise_cov):
+        inverse_operator = mne.minimum_norm.make_inverse_operator(
+            info, fwd, noise_cov)
+        return inverse_operator
+
+
+# Prepare subject
+subject = SubjectFsaverage()
+subject.pipeline()
+fwd_eeg = subject.read_forward_solution(eeg_epochs.info, 'eeg')
+fwd_meg = subject.read_forward_solution(meg_epochs.info, 'meg')
+print('src', subject.src)
+print('bem', subject.bem)
+
+# Compute cov
+print('Computing noise_cov')
+with redirect_stdout(io.StringIO()):
+    method = ['empirical']
+    noise_cov = dict(
+        eeg=mne.compute_covariance(eeg_epochs, tmax=0, method=method),
+        meg=mne.compute_covariance(meg_epochs, tmax=0, method=method),
+    )
+print(noise_cov)
+
+# Compute inverse operator
+print('Computing inverse_operator')
+with redirect_stdout(io.StringIO()):
+    inverse_operator = dict(
+        eeg=subject.make_inverse_operator(
+            eeg_epochs.info, fwd_eeg, noise_cov['eeg']),
+        meg=subject.make_inverse_operator(
+            meg_epochs.info, fwd_meg, noise_cov['meg']),
+    )
+print(inverse_operator)
+
+
+# Compute inverse
+snr = 3.0  # Standard assumption for average data but using it for single trial
+kwargs = dict(
+    lambda2=1.0 / snr**2,
+    method="dSPM"  # use dSPM method (could also be MNE or sLORETA)
+)
+
+# Compute EEG inverse
+print('Computing EEG inverse')
+with redirect_stdout(io.StringIO()):
+    eeg_epochs.load_data()
+    mne.set_eeg_reference(eeg_epochs, projection=True)
+    eeg_stcs = mne.minimum_norm.apply_inverse_epochs(eeg_epochs,
+                                                     inverse_operator['eeg'],
+                                                     **kwargs)
+print(eeg_stcs)
+
+# Compute MEG inverse
+print('Computing MEG inverse')
+with redirect_stdout(io.StringIO()):
+    meg_stcs = mne.minimum_norm.apply_inverse_epochs(meg_epochs,
+                                                     inverse_operator['meg'],
+                                                     **kwargs)
+print(meg_stcs)
+
+
 # %% ---- 2025-06-27 ------------------------
 # Play ground
-
-# parc, str, The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
-parc = 'aparc_sub'
-
-labels_parc = mne.read_labels_from_annot(
-    SUBJECT, parc=parc, subjects_dir=SUBJECTS_DIR)
-print(labels_parc)
-
-labels_parc_dict = {e.name: e for e in labels_parc}
-print(labels_parc_dict)
-
-
-def _color(vec):
-    return '#' + ''.join(hex(int(255 * e)).replace('x', '')[-2:] for e in vec[:3])
-
-
-df = pd.DataFrame([(v.name, len(v.values), v.color, v.pos, v.vertices)
-                   for v in tqdm(labels_parc, 'Generate DataFrame')],
-                  columns=['name', 'num', 'rgba', 'pos', 'vertices'])
-
-df['xyz'] = df['pos'].map(lambda e: np.mean(e, axis=0))
-df['cx'] = df['xyz'].map(lambda e: e[0])
-df['cy'] = df['xyz'].map(lambda e: e[1])
-df['cz'] = df['xyz'].map(lambda e: e[2])
-df['color'] = df['rgba'].map(lambda e: _color(e))
-
-labels_parc_df = df[['name', 'num', 'color',
-                     'cx', 'cy', 'cz', 'pos', 'vertices']]
-print(labels_parc_df)
 
 # %% ---- 2025-06-27 ------------------------
 # Pending
