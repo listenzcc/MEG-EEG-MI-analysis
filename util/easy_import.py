@@ -1,4 +1,5 @@
 # Import commonly used modules and functions
+import io
 import re
 import mne
 import argparse
@@ -14,6 +15,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from rich import print, inspect
 from pathlib import Path
 from tqdm.auto import tqdm
+from contextlib import redirect_stdout
 
 from .logging import logger
 from .data import MyData

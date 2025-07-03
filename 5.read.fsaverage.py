@@ -25,6 +25,8 @@ Functions:
 
 # %% ---- 2025-06-27 ------------------------
 # Requirements and constants
+import matplotlib
+from pyvirtualdisplay import Display
 import io
 from contextlib import redirect_stdout
 
@@ -167,6 +169,28 @@ print(meg_stcs)
 
 # %% ---- 2025-06-27 ------------------------
 # Play ground
+# parc, str, The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
+parc = 'aparc_sub'
+
+labels_parc = mne.read_labels_from_annot(
+    subject.subject, parc=parc, subjects_dir=subject.subjects_dir)
+labels_parc_dict = {e.name: e for e in labels_parc}
+print(labels_parc_dict)
+
+# %%
+stc = meg_stcs[20]
+print(stc)
+
+# %%
+brain = stc.plot(hemi='both')
+
+# %%
+s = stc.in_label(labels_parc_dict['postcentral_8-lh'])
+inspect(s)
+fig, ax = plt.subplots(1, 1, figsize=(8, 3))
+y = np.mean(s.data, axis=0)
+ax.plot(s.times, y)
+plt.show()
 
 # %% ---- 2025-06-27 ------------------------
 # Pending

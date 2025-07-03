@@ -1,6 +1,6 @@
 #!/bin/bash
 
-script=1.compute.tfr.py
+script=0.read.evoked.py
 
 python $script -s ./rawdata/S01_20220119 &
 python $script -s ./rawdata/S02_20220315 &

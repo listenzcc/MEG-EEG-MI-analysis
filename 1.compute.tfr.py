@@ -42,7 +42,7 @@ def read_data():
     '''
     # Setup options
     epochs_kwargs = {'tmin': -3, 'tmax': 6, 'decim': 6}
-    use_latest_ds_directories = 2  # 8
+    use_latest_ds_directories = 8  # 8
 
     # Read from file
     found = find_ds_directories(subject_directory)
