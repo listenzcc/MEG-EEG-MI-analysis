@@ -21,7 +21,7 @@ Functions:
 from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
-# subject_directory = Path('./rawdata/S01_20220119')
+subject_directory = Path('./rawdata/S01_20220119')
 
 parse = argparse.ArgumentParser('Compute TFR')
 parse.add_argument('-s', '--subject-dir', required=True)
@@ -42,7 +42,7 @@ def read_data():
     Read data (.ds directories) and convert raw to epochs.
     '''
     # Setup options
-    epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 6}
+    epochs_kwargs = {'tmin': -3, 'tmax': 5, 'decim': 6}
     use_latest_ds_directories = 8  # 8
 
     # Read from file
@@ -62,8 +62,8 @@ def read_data():
         md.generate_epochs(**epochs_kwargs)
         md.eeg_epochs.load_data()
         md.meg_epochs.load_data()
-        md.eeg_epochs.apply_baseline((None, 0))
-        md.meg_epochs.apply_baseline((None, 0))
+        md.eeg_epochs.apply_baseline((-2, 0))
+        md.meg_epochs.apply_baseline((-2, 0))
 
     return mds, event_id
 
@@ -83,6 +83,7 @@ evts = ['1', '2', '3', '4', '5']
 mds, event_id = read_data()
 eeg_epochs, meg_epochs = concat_epochs(mds)
 
+# %%
 for evt in evts:
     evoked = eeg_epochs[evt].average()
     evoked.save(data_directory.joinpath(
