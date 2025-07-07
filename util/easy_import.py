@@ -15,7 +15,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from rich import print, inspect
 from pathlib import Path
 from tqdm.auto import tqdm
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 
 from .logging import logger
 from .data import MyData

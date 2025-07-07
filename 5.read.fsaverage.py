@@ -25,14 +25,11 @@ Functions:
 
 # %% ---- 2025-06-27 ------------------------
 # Requirements and constants
-import matplotlib
-from pyvirtualdisplay import Display
 import io
 from contextlib import redirect_stdout
 
 from util.easy_import import *
 from util.read_example_raw import md
-from util.plotly_template import setup_plotly_theme, px, go
 
 md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
 raw = md.raw

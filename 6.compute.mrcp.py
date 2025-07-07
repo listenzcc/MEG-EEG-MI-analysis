@@ -21,6 +21,8 @@ Functions:
 from util.easy_import import *
 
 evoked_directory = Path('./data/evoked')
+data_directory = Path('./data/MRCP')
+data_directory.mkdir(exist_ok=True, parents=True)
 compile = re.compile(
     r'^(?P<mode>[a-z]+)-evt(?P<evt>\d+)-n(?P<nave>\d+)-ave.fif')
 
@@ -65,6 +67,8 @@ def get_merged_evoked(mode: str, evt: str, baseline: tuple = None):
 
     [e.pick(pick_channels[mode]) for e in evokeds]
 
+    [e.filter(l_freq=0.1, h_freq=40, n_jobs=32) for e in evokeds]
+
     if baseline:
         [e.apply_baseline(baseline) for e in evokeds]
 
@@ -78,15 +82,27 @@ def get_merged_evoked(mode: str, evt: str, baseline: tuple = None):
 # Play ground
 evts = sorted(list(table['evt'].unique()))
 modes = ['meg', 'eeg']
-for mode, evt in itertools.product(modes, evts):
-    evoked = get_merged_evoked(mode, evt)
-    evoked.plot_joint(title=f'{mode} @evt{evt}', times=[0, 0.15, 0.2])
 
-    evoked = get_merged_evoked(mode, evt, (-0.2, 0))
-    evoked.crop(tmin=-0.3, tmax=0.7)
-    evoked.plot_joint(title=f'{mode} @evt{evt}', times=[0, 0.15, 0.2])
+mpl.use('pdf')
+p = data_directory.joinpath('mrcp.pdf')
+with PdfPages(p) as pdf:
+    for mode, evt in itertools.product(modes, evts):
+        with redirect_stdout(io.StringIO()):
+            with redirect_stderr(io.StringIO()):
+                evoked = get_merged_evoked(mode, evt)
+        fig = evoked.plot_joint(
+            title=f'{mode} @evt{evt}', times=[0, 0.15, 0.2])
+        pdf.savefig(fig)
 
-plt.show()
+        with redirect_stdout(io.StringIO()):
+            with redirect_stderr(io.StringIO()):
+                evoked = get_merged_evoked(mode, evt, (-0.2, 0))
+                evoked.crop(tmin=-0.3, tmax=0.7)
+        fig = evoked.plot_joint(
+            title=f'{mode} @evt{evt}', times=[0, 0.15, 0.2])
+        pdf.savefig(fig)
+
+logger.info(f'Saved to {p}')
 
 # %% ---- 2025-07-03 ------------------------
 # Pending
