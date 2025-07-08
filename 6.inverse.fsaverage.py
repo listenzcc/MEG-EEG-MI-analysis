@@ -25,31 +25,89 @@ Functions:
 
 # %% ---- 2025-06-27 ------------------------
 # Requirements and constants
+import sys
 import io
 from contextlib import redirect_stdout
 
 from util.easy_import import *
-from util.read_example_raw import md
+from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
+# from util.read_example_raw import md
 
-md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
-raw = md.raw
-eeg_epochs = md.eeg_epochs
-meg_epochs = md.meg_epochs
-print(raw)
-print(eeg_epochs)
-print(meg_epochs)
+subject_directory = Path('./rawdata/S01_20220119')
+
+parse = argparse.ArgumentParser('Compute TFR')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+subject_directory = Path(args.subject_dir)
+
+subject_name = subject_directory.name
+
+data_directory = Path(f'./data/fsaverage-alpha/{subject_name}')
+data_directory.mkdir(parents=True, exist_ok=True)
+
+# md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
+# raw = md.raw
+# eeg_epochs = md.eeg_epochs
+# meg_epochs = md.meg_epochs
+# print(raw)
+# print(eeg_epochs)
+# print(meg_epochs)
 
 n_jobs = 32
 
+
+def read_data():
+    '''
+    Read data (.ds directories) and convert raw to epochs.
+    '''
+    # Setup options
+    epochs_kwargs = {'tmin': -3, 'tmax': 5, 'decim': 6}
+    use_latest_ds_directories = 8  # 8
+
+    # Read from file
+    mds = []
+    found = find_ds_directories(subject_directory)
+    mds.extend([read_ds_directory(p)
+                for p in found[-use_latest_ds_directories:]])
+
+    # The concat requires the same dev_head_t
+    dev_head_t = mds[0].raw.info['dev_head_t']
+
+    # Read data and convert into epochs
+    event_id = mds[0].event_id
+    for md in tqdm(mds, 'Convert to epochs'):
+        md.raw.info['dev_head_t'] = dev_head_t
+        md.add_proj()
+        md.generate_epochs(**epochs_kwargs)
+        md.eeg_epochs.load_data()
+        md.meg_epochs.load_data()
+        md.eeg_epochs.apply_baseline((-2, 0))
+        md.meg_epochs.apply_baseline((-2, 0))
+
+    return mds, event_id
+
+
+def concat_epochs(mds: list[MyData]):
+    eeg_epochs = mne.concatenate_epochs(
+        [md.eeg_epochs for md in tqdm(mds, 'Concat EEG Epochs')])
+    meg_epochs = mne.concatenate_epochs(
+        [md.meg_epochs for md in tqdm(mds, 'Concat MEG Epochs')])
+    return eeg_epochs, meg_epochs
+
+
+evts = ['1', '2', '3', '4', '5']
+mds, event_id = read_data()
+eeg_epochs, meg_epochs = concat_epochs(mds)
+
+n_jobs = 32
+eeg_epochs.filter(l_freq=8, h_freq=12, n_jobs=n_jobs)
+meg_epochs.filter(l_freq=8, h_freq=12, n_jobs=n_jobs)
 
 # %% ---- 2025-06-27 ------------------------
 # Function and class
 
 
 class SubjectFsaverage:
-    # Local
-    local_cache = Path('./data/fsaverage')
-
     # MNE fsaverage
     subject = 'fsaverage'
     subject_dir = mne.datasets.fetch_fsaverage()
@@ -150,19 +208,37 @@ print('Computing EEG inverse')
 with redirect_stdout(io.StringIO()):
     eeg_epochs.load_data()
     mne.set_eeg_reference(eeg_epochs, projection=True)
-    eeg_stcs = mne.minimum_norm.apply_inverse_epochs(eeg_epochs,
-                                                     inverse_operator['eeg'],
-                                                     **kwargs)
-print(eeg_stcs)
+    # eeg_stcs = mne.minimum_norm.apply_inverse_epochs(eeg_epochs,
+    #                                                  inverse_operator['eeg'],
+    #                                                  **kwargs)
+    for evt in evts:
+        evoked = eeg_epochs[evt].average()
+        eeg_stc = mne.minimum_norm.apply_inverse(
+            evoked, inverse_operator['eeg'], **kwargs)
+        print(eeg_stc)
+        eeg_stc.save(data_directory.joinpath(
+            f'eeg-evt{evt}.stc'), overwrite=True)
 
 # Compute MEG inverse
 print('Computing MEG inverse')
 with redirect_stdout(io.StringIO()):
-    meg_stcs = mne.minimum_norm.apply_inverse_epochs(meg_epochs,
-                                                     inverse_operator['meg'],
-                                                     **kwargs)
-print(meg_stcs)
+    # meg_stc = mne.minimum_norm.apply_inverse_epochs(meg_epochs,
+    #                                                 inverse_operator['meg'],
+    #                                                 **kwargs)
+    for evt in evts:
+        evoked = meg_epochs[evt].average()
+        meg_stc = mne.minimum_norm.apply_inverse(
+            evoked, inverse_operator['meg'], **kwargs)
+        print(meg_stc)
+        meg_stc.save(data_directory.joinpath(
+            f'meg-evt{evt}.stc'), overwrite=True)
 
+sys.exit(0)
+
+# %%
+dir(mne.minimum_norm)
+stc = mne.read_source_estimate('meg.stc')
+print(stc)
 
 # %% ---- 2025-06-27 ------------------------
 # Play ground
@@ -175,13 +251,16 @@ labels_parc_dict = {e.name: e for e in labels_parc}
 print(labels_parc_dict)
 
 # %%
-stc = meg_stcs[20]
+stc = meg_stc.copy()
+stc.crop(tmin=-0.3, tmax=0.7)
 print(stc)
 
 # %%
+# Plot in 3D view
 brain = stc.plot(hemi='both')
 
 # %%
+# Block to prevent brain being closed automatically
 s = stc.in_label(labels_parc_dict['postcentral_8-lh'])
 inspect(s)
 fig, ax = plt.subplots(1, 1, figsize=(8, 3))

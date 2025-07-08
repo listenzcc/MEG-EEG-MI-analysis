@@ -1,6 +1,7 @@
 #!/bin/bash
 
-script=0.read.evoked.py
+# script=0.read.evoked.py
+script=6.inverse.fsaverage.py
 
 python $script -s ./rawdata/S01_20220119 &
 python $script -s ./rawdata/S02_20220315 &
