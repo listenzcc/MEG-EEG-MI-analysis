@@ -30,6 +30,7 @@ import io
 from contextlib import redirect_stdout
 
 from util.easy_import import *
+from util.subject_fsaverage import SubjectFsaverage
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 # from util.read_example_raw import md
 
@@ -42,7 +43,7 @@ subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
-data_directory = Path(f'./data/fsaverage-alpha/{subject_name}')
+data_directory = Path(f'./data/stc/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
@@ -99,15 +100,11 @@ evts = ['1', '2', '3', '4', '5']
 mds, event_id = read_data()
 eeg_epochs, meg_epochs = concat_epochs(mds)
 
-n_jobs = 32
-eeg_epochs.filter(l_freq=8, h_freq=12, n_jobs=n_jobs)
-meg_epochs.filter(l_freq=8, h_freq=12, n_jobs=n_jobs)
-
 # %% ---- 2025-06-27 ------------------------
 # Function and class
 
 
-class SubjectFsaverage:
+class SubjectFsaverageDeprecated:
     # MNE fsaverage
     subject = 'fsaverage'
     subject_dir = mne.datasets.fetch_fsaverage()
