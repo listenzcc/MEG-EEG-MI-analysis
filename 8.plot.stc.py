@@ -1,7 +1,8 @@
 # %% ---- 2025-06-27 ------------------------
 from util.easy_import import *
 
-data_directory = Path('./data/stc-alpha')
+data_directory = Path('./data/tfr-stc-alpha')
+data_directory = Path('./data/tfr-stc-beta')
 compile = re.compile(r'^(?P<me>[a-z]+)-evt(?P<evt>\d+).stc-lh.stc')
 
 

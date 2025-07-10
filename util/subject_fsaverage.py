@@ -1,5 +1,7 @@
 from .easy_import import *
 
+n_jobs = 64
+
 
 class SubjectFsaverage:
     local_cache = Path('./data/fsaverage')

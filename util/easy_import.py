@@ -19,3 +19,5 @@ from contextlib import redirect_stdout, redirect_stderr
 
 from .logging import logger
 from .data import MyData
+
+n_jobs = 32
