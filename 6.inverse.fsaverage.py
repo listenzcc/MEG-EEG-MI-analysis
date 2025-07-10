@@ -25,6 +25,7 @@ Functions:
 
 # %% ---- 2025-06-27 ------------------------
 # Requirements and constants
+import joblib
 import sys
 import io
 from contextlib import redirect_stdout
@@ -43,7 +44,7 @@ subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
-data_directory = Path(f'./data/stc/{subject_name}')
+data_directory = Path(f'./data/fsaverage/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
@@ -53,8 +54,6 @@ data_directory.mkdir(parents=True, exist_ok=True)
 # print(raw)
 # print(eeg_epochs)
 # print(meg_epochs)
-
-n_jobs = 32
 
 
 def read_data():
@@ -81,6 +80,7 @@ def read_data():
         md.add_proj()
         md.generate_epochs(**epochs_kwargs)
         md.eeg_epochs.load_data()
+        md.eeg_epochs.set_eeg_reference(projection=True)
         md.meg_epochs.load_data()
         md.eeg_epochs.apply_baseline((-2, 0))
         md.meg_epochs.apply_baseline((-2, 0))
@@ -192,6 +192,17 @@ with redirect_stdout(io.StringIO()):
     )
 print(inverse_operator)
 
+stuff_estimate_snr = dict(
+    cov_eeg=noise_cov['eeg'],
+    cov_meg=noise_cov['meg'],
+    fwd_eeg=fwd_eeg,
+    fwd_meg=fwd_meg,
+    info_eeg=eeg_epochs.info,
+    info_meg=meg_epochs.info
+)
+
+joblib.dump(stuff_estimate_snr, data_directory.joinpath(
+    'stuff-estimate-snr.dump'))
 
 # Compute inverse
 snr = 3.0  # Standard assumption for average data but using it for single trial
@@ -204,10 +215,7 @@ kwargs = dict(
 print('Computing EEG inverse')
 with redirect_stdout(io.StringIO()):
     eeg_epochs.load_data()
-    mne.set_eeg_reference(eeg_epochs, projection=True)
-    # eeg_stcs = mne.minimum_norm.apply_inverse_epochs(eeg_epochs,
-    #                                                  inverse_operator['eeg'],
-    #                                                  **kwargs)
+    # mne.set_eeg_reference(eeg_epochs, projection=True)
     for evt in evts:
         evoked = eeg_epochs[evt].average()
         eeg_stc = mne.minimum_norm.apply_inverse(
@@ -219,9 +227,6 @@ with redirect_stdout(io.StringIO()):
 # Compute MEG inverse
 print('Computing MEG inverse')
 with redirect_stdout(io.StringIO()):
-    # meg_stc = mne.minimum_norm.apply_inverse_epochs(meg_epochs,
-    #                                                 inverse_operator['meg'],
-    #                                                 **kwargs)
     for evt in evts:
         evoked = meg_epochs[evt].average()
         meg_stc = mne.minimum_norm.apply_inverse(
@@ -231,39 +236,6 @@ with redirect_stdout(io.StringIO()):
             f'meg-evt{evt}.stc'), overwrite=True)
 
 sys.exit(0)
-
-# %%
-dir(mne.minimum_norm)
-stc = mne.read_source_estimate('meg.stc')
-print(stc)
-
-# %% ---- 2025-06-27 ------------------------
-# Play ground
-# parc, str, The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
-parc = 'aparc_sub'
-
-labels_parc = mne.read_labels_from_annot(
-    subject.subject, parc=parc, subjects_dir=subject.subjects_dir)
-labels_parc_dict = {e.name: e for e in labels_parc}
-print(labels_parc_dict)
-
-# %%
-stc = meg_stc.copy()
-stc.crop(tmin=-0.3, tmax=0.7)
-print(stc)
-
-# %%
-# Plot in 3D view
-brain = stc.plot(hemi='both')
-
-# %%
-# Block to prevent brain being closed automatically
-s = stc.in_label(labels_parc_dict['postcentral_8-lh'])
-inspect(s)
-fig, ax = plt.subplots(1, 1, figsize=(8, 3))
-y = np.mean(s.data, axis=0)
-ax.plot(s.times, y)
-plt.show()
 
 # %% ---- 2025-06-27 ------------------------
 # Pending

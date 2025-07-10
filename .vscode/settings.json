@@ -12,5 +12,6 @@
         "data": true,
         "rawdata": true,
         "log": true,
-    }
+    },
+    "python.analysis.indexing":false,
 }

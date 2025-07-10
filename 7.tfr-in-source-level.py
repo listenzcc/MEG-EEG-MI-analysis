@@ -12,8 +12,6 @@ from util.easy_import import *
 from util.subject_fsaverage import SubjectFsaverage
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
-n_jobs = 64
-
 # subject_directory = Path('./rawdata/S01_20220119')
 
 parse = argparse.ArgumentParser('Compute TFR')
