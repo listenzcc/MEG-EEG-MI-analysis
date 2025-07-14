@@ -80,6 +80,8 @@ def read_data():
         md.add_proj()
         md.generate_epochs(**epochs_kwargs)
         md.eeg_epochs.load_data()
+
+        # ! Necessary to inverse operation
         md.eeg_epochs.set_eeg_reference(projection=True)
         md.meg_epochs.load_data()
         md.eeg_epochs.apply_baseline((-2, 0))
@@ -215,7 +217,6 @@ kwargs = dict(
 print('Computing EEG inverse')
 with redirect_stdout(io.StringIO()):
     eeg_epochs.load_data()
-    # mne.set_eeg_reference(eeg_epochs, projection=True)
     for evt in evts:
         evoked = eeg_epochs[evt].average()
         eeg_stc = mne.minimum_norm.apply_inverse(
