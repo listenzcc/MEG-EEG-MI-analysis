@@ -1,11 +1,15 @@
 # %%
-from mne.stats.cluster_level import _find_clusters
-from scipy.ndimage import label
-import joblib
-from mne.stats import cluster_level
-from mne import spatial_src_adjacency
-from scipy import stats
 import sys
+import joblib
+
+from mne import spatial_src_adjacency
+from mne.stats import cluster_level
+from mne.stats import fdr_correction
+from mne.stats.cluster_level import _find_clusters
+
+from scipy import stats
+from scipy.ndimage import label
+
 from util.easy_import import *
 
 compile = re.compile(r'^(?P<me>[a-z]+)-evt(?P<evt>\d+).stc-lh.stc')
@@ -66,7 +70,7 @@ stc
 print(stc.data.shape)
 print(subject.adjacency.data.shape)
 # %%
-data_directory = Path('./data/anova/')
+anova_data_directory = Path('./data/anova/')
 n = 10
 k = 4
 
@@ -74,26 +78,39 @@ df_cond = k - 1
 df_error = (n - 1) * (k - 1)
 
 # %%
-anova = joblib.load(data_directory.joinpath('meg-alpha.dump'))
-p_obs = anova['p']
-F_obs = anova['f']
-
-# %%
-
 # 1. 定义显著性阈值（单点水平）
 p_thresh = 0.05  # 初始p值阈值
 # F临界值（dfn, dfd 是F检验自由度）
 f_thresh = stats.f.ppf(1 - p_thresh, df_cond, df_error)
+alpha = 0.05
+print(f'Using p*={p_thresh} (f={f_thresh})')
 
-clusters = _find_clusters(
-    F_obs[:, 0],
-    threshold=f_thresh,
-    adjacency=subject.adjacency,
-    tail=1,
-)
+anova = joblib.load(anova_data_directory.joinpath('meg-alpha.dump'))
+p_obs = anova['p']
+F_obs = anova['f']
+p_fdr = np.zeros_like(p_obs) + 1
+
+for t in tqdm(range(F_obs.shape[1]), 'Find clusters'):
+    clusters = _find_clusters(
+        F_obs[:, t],
+        threshold=f_thresh,
+        adjacency=subject.adjacency,
+        tail=1,
+    )
+    for idx in clusters[0]:
+        _p_obs = p_obs[idx, t]
+        reject, _p_fdr = fdr_correction(_p_obs, alpha=alpha, method='indep')
+        p_fdr[idx, t] = _p_fdr
 
 print(clusters)
+print(p_fdr.shape)
+print(p_fdr)
 
+# %%
+_p_obs = p_obs[clusters[0][0], 0]
+print(_p_obs)
+reject, p_fdr = fdr_correction(_p_obs, alpha=0.05, method='indep')
+print(reject, p_fdr)
 
 # %%
 
@@ -111,7 +128,7 @@ while True:
         break
 
     try:
-        anova = joblib.load(data_directory.joinpath(f'{inp}.dump'))
+        anova = joblib.load(anova_data_directory.joinpath(f'{inp}.dump'))
         stc.data = anova['f']
 
         # Plot in 3D view
