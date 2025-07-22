@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script=0.read.evoked.py
-script=7.tfr-in-source-level.py
+script=mvpa.1.rawEpoch.py
 
 python $script -s ./rawdata/S01_20220119 &
 python $script -s ./rawdata/S02_20220315 &
