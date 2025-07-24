@@ -158,7 +158,7 @@ epochs = epochs.resample(40, npad="auto")  # resample to 40 Hz
 cv = np.max(groups)+1
 # MEG signals: n_epochs, n_meg_channels, n_times
 X = epochs.get_data(copy=False)
-y = epochs.events[:, 2]  # target: auditory left vs visual left
+y = epochs.events[:, 2]  # target
 
 # %%
 
