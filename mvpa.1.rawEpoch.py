@@ -47,10 +47,7 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 # --------------------------------------------------------------------------------
 mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
-band_name = 'alpha'
 subject_directory = Path('./rawdata/S01_20220119')
-
-subject_directory = Path("./rawdata/S07_20231220")
 
 # Use the arguments
 # parse = argparse.ArgumentParser('Compute TFR')
@@ -65,7 +62,6 @@ data_directory = Path(f'./data/MVPA/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 pdf_path = data_directory / f'decoding-{mode}-band-{band_name}.pdf'
-pdf_path = Path('.') / f'decoding-{mode}-band-{band_name}.pdf'
 dump_path = Path(pdf_path).with_suffix('.dump')
 
 # %% ---- 2025-07-21 ------------------------
@@ -153,18 +149,8 @@ X = epochs.get_data(copy=False)
 y = epochs.events[:, 2]  # target
 
 # %%
-
 scoring = make_scorer(accuracy_score, greater_is_better=True)
 
-clf = make_pipeline(
-    CSP(n_components=4, reg=None, log=False, norm_trace=False),
-    # StandardScaler(),  # In question
-    # LogisticRegression(solver="liblinear"),
-    LinearDiscriminantAnalysis(),
-)
-res = cross_val_score(estimator=clf, X=X, y=y,
-                      groups=groups, cv=cv, scoring=scoring)
-print(res)
 
 # %%
 
