@@ -18,8 +18,11 @@ Functions:
 
 # %% ---- 2025-07-21 ------------------------
 # Requirements and constants
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 import joblib
 import matplotlib
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from sklearn.metrics import accuracy_score, make_scorer
 from sklearn.pipeline import make_pipeline
@@ -44,14 +47,16 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 # --------------------------------------------------------------------------------
 mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
-band_name = 'beta'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
+band_name = 'alpha'
 subject_directory = Path('./rawdata/S01_20220119')
 
+subject_directory = Path("./rawdata/S07_20231220")
+
 # Use the arguments
-parse = argparse.ArgumentParser('Compute TFR')
-parse.add_argument('-s', '--subject-dir', required=True)
-args = parse.parse_args()
-subject_directory = Path(args.subject_dir)
+# parse = argparse.ArgumentParser('Compute TFR')
+# parse.add_argument('-s', '--subject-dir', required=True)
+# args = parse.parse_args()
+# subject_directory = Path(args.subject_dir)
 
 # --------------------------------------------------------------------------------
 # Prepare the paths
@@ -60,6 +65,7 @@ data_directory = Path(f'./data/MVPA/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 pdf_path = data_directory / f'decoding-{mode}-band-{band_name}.pdf'
+pdf_path = Path('.') / f'decoding-{mode}-band-{band_name}.pdf'
 dump_path = Path(pdf_path).with_suffix('.dump')
 
 # %% ---- 2025-07-21 ------------------------
@@ -139,26 +145,26 @@ else:
     raise ValueError(f'Unknown mode: {mode}')
 
 
-# tfr data shape is (n_epochs, n_channels, n_freqs, n_times)
-# freqs = list(bands.mk_band_range(band_name))
-# tfr = epochs.compute_tfr(
-#     method='morlet',
-#     freqs=freqs,
-#     n_cycles=freqs,
-#     return_itc=False,
-#     average=False,
-#     decim=1,
-#     n_jobs=n_jobs
-# )
-# epochs.data = np.mean(tfr.data, axis=2)  # average over frequencies
-# epochs.apply_baseline(baseline=(-1, 0))  # apply baseline correction
-
 epochs = epochs.resample(40, npad="auto")  # resample to 40 Hz
 
 cv = np.max(groups)+1
 # MEG signals: n_epochs, n_meg_channels, n_times
 X = epochs.get_data(copy=False)
 y = epochs.events[:, 2]  # target
+
+# %%
+
+scoring = make_scorer(accuracy_score, greater_is_better=True)
+
+clf = make_pipeline(
+    CSP(n_components=4, reg=None, log=False, norm_trace=False),
+    # StandardScaler(),  # In question
+    # LogisticRegression(solver="liblinear"),
+    LinearDiscriminantAnalysis(),
+)
+res = cross_val_score(estimator=clf, X=X, y=y,
+                      groups=groups, cv=cv, scoring=scoring)
+print(res)
 
 # %%
 
@@ -198,7 +204,6 @@ with PdfPages(pdf_path) as pdf:
         LinearModel(LogisticRegression(solver="liblinear"))
     )
 
-    scoring = make_scorer(accuracy_score, greater_is_better=True)
     time_decod = SlidingEstimator(
         clf, n_jobs=n_jobs, scoring=scoring, verbose=True)
 

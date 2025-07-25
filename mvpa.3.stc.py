@@ -24,6 +24,8 @@ Reference:
 # %%
 import sys
 
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -48,7 +50,8 @@ from util.easy_import import *
 from util.bands import Bands
 
 
-subject_directory = Path("./rawdata/S01_20220119")
+# subject_directory = Path("./rawdata/S01_20220119")
+subject_directory = Path("./rawdata/S07_20231220")
 
 # parse = argparse.ArgumentParser('Compute TFR')
 # parse.add_argument('-s', '--subject-dir', required=True)
@@ -57,7 +60,7 @@ subject_directory = Path("./rawdata/S01_20220119")
 
 subject_name = subject_directory.name
 
-data_directory = Path(f"./data/tfr-stc-alpha/{subject_name}")
+data_directory = Path(f"./data/tfr-stc-beta/{subject_name}")
 data_directory.mkdir(parents=True, exist_ok=True)
 
 ROI_labels = [
@@ -140,6 +143,22 @@ def concat_epochs(mds: list[MyData]):
     return eeg_epochs, meg_epochs, groups
 
 
+# %%
+subject = SubjectFsaverage()
+parc = "aparc_sub"
+labels_parc = mne.read_labels_from_annot(
+    subject.subject, parc=parc, subjects_dir=subject.subjects_dir
+)
+labels_parc_df = pd.DataFrame(
+    [(e.name, e) for e in labels_parc], columns=["name", "label"]
+)
+labels_parc_df
+label_obj = labels_parc_df.query('name=="precentral_5-lh"').iloc[0]['label']
+label_obj
+
+# %%
+
+
 def compute_stc(epochs, fwd, freqs, tmin, tmax):
     epochs_tfr = epochs.compute_tfr(
         "morlet",
@@ -175,17 +194,17 @@ def compute_stc(epochs, fwd, freqs, tmin, tmax):
         epochs_tfr, filters, return_generator=True
     )
 
-    epochs_stcs = list(epochs_stcs_generator)
+    # epochs_stcs = list(epochs_stcs_generator)
     output_stcs = []
-    for stcs in tqdm(epochs_stcs, 'Processing stcs'):
+    for stcs in tqdm(epochs_stcs_generator, 'Processing stcs'):
         stc = stcs[0]
+        stc = stc.in_label(label_obj)
         # Average across the freqs
         data = np.stack([s.data for s in stcs], axis=0)
 
         # Convert from complex to real
-        data = np.abs(data)
-
-        stc.data = data.mean(axis=0)
+        # data = np.abs(data)
+        # stc.data = data.mean(axis=0)
 
         stc.crop(tmin=-1, tmax=4)
         stc.apply_baseline((-1, 0))
@@ -201,16 +220,6 @@ eeg_epochs, meg_epochs, groups = concat_epochs(mds)
 print(eeg_epochs)
 print(meg_epochs)
 
-# %%
-subject = SubjectFsaverage()
-parc = "aparc_sub"
-labels_parc = mne.read_labels_from_annot(
-    subject.subject, parc=parc, subjects_dir=subject.subjects_dir
-)
-labels_parc_df = pd.DataFrame(
-    [(e.name, e) for e in labels_parc], columns=["name", "label"]
-)
-labels_parc_df
 
 # %%
 subject = SubjectFsaverage()
@@ -234,14 +243,12 @@ fwd = fwd_meg
 stcs = compute_stc(epochs, fwd, freqs, tmin, tmax)
 print(stcs)
 
-# %%
-label_obj = labels_parc_df.query('name=="precentral_5-lh"').iloc[0]['label']
-label_obj
 
 # %%
 cv = np.max(groups) + 1
 # MEG signals: n_epochs, n_meg_channels, n_times
-X = np.stack([stc.in_label(label_obj).data for stc in stcs], axis=0)
+X = np.stack([stc.data for stc in stcs], axis=0)
+X = np.abs(X)
 y = epochs.events[:, 2]  # target
 print(X.shape)
 print(y.shape)
@@ -263,7 +270,18 @@ scores = cross_val_multiscore(
 print(scores)
 
 # %%
-plt.plot(stc.times, np.mean(scores, axis=0))
+plt.plot(stcs[0].times, np.mean(scores, axis=0))
 plt.show()
+
+# %%
+# Assemble the classifier using scikit-learn pipeline
+clf = make_pipeline(
+    CSP(n_components=4, reg=None, log=True, norm_trace=False),
+    StandardScaler(),  # In question
+    LogisticRegression(solver="liblinear"),
+)
+res = cross_val_score(estimator=clf, X=X, y=y,
+                      groups=groups, cv=cv, scoring=scoring)
+print(res)
 
 # %%
