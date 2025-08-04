@@ -177,7 +177,7 @@ print(res)
 
 # %%
 # init scores
-freq_scores = np.zeros((n_freqs - 1,))
+freq_scores = {}
 
 # Loop through each frequency range of interest
 for freq, (fmin, fmax) in enumerate(freq_ranges):

@@ -71,6 +71,10 @@ dump_path = Path(pdf_path).with_suffix('.dump')
 def read_data():
     '''
     Read data (.ds directories) and convert raw to epochs.
+    The epochs are cut with large scale: (-2, 5) seconds.
+    The filter is applied to the scale.
+    After the filter, the epochs are cropped with (-1, 4) seconds.
+    The method is to prevent cropping effect.
     '''
     # Setup options
     bands = Bands()
