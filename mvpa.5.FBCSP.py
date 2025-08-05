@@ -18,6 +18,8 @@ Functions:
 
 # %% ---- 2025-08-04 ------------------------
 # Requirements and constants
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.model_selection import cross_val_score, StratifiedKFold, LeaveOneGroupOut
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, make_scorer
@@ -35,10 +37,10 @@ band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
 # Use the arguments
-# parse = argparse.ArgumentParser('Compute TFR')
-# parse.add_argument('-s', '--subject-dir', required=True)
-# args = parse.parse_args()
-# subject_directory = Path(args.subject_dir)
+parse = argparse.ArgumentParser('Compute TFR')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+subject_directory = Path(args.subject_dir)
 
 # --------------------------------------------------------------------------------
 # Prepare the paths
@@ -66,7 +68,7 @@ def read_data():
     l_freq, h_freq = bands.get_band(band_name)
     epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 6}
     filter_kwargs = {'l_freq': l_freq, 'h_freq': h_freq, 'n_jobs': n_jobs}
-    use_latest_ds_directories = 2  # 8
+    use_latest_ds_directories = 8  # 8
 
     # Read from file
     found = find_ds_directories(subject_directory)
@@ -234,14 +236,15 @@ class SafeFBCSP(BaseEstimator, TransformerMixin):
         sfreq = self.sfreq
         # X shape: (n_epochs, n_channels, n_times)
         for l_freq, h_freq in tqdm(self.freq_ranges, 'Fit'):
-            # 频带滤波（每个epoch独立滤波）
-            X_filt = np.array([mne.filter.filter_data(
-                x, sfreq=sfreq, l_freq=l_freq, h_freq=h_freq)
-                for x in X])
+            with redirect_stdout(io.StringIO()):
+                # 频带滤波（每个epoch独立滤波）
+                X_filt = np.array([mne.filter.filter_data(
+                    x, sfreq=sfreq, l_freq=l_freq, h_freq=h_freq)
+                    for x in X])
 
-            # 训练CSP
-            csp = CSP(n_components=self.n_components)
-            csp.fit(X_filt, y)
+                # 训练CSP
+                csp = CSP(n_components=self.n_components)
+                csp.fit(X_filt, y)
             self.csp_filters[(l_freq, h_freq)] = csp
         return self
 
@@ -249,9 +252,10 @@ class SafeFBCSP(BaseEstimator, TransformerMixin):
         features = []
         sfreq = self.sfreq
         for (l_freq, h_freq), csp in tqdm(self.csp_filters.items(), 'Transform'):
-            X_filt = np.array([mne.filter.filter_data(
-                x, sfreq=sfreq, l_freq=l_freq, h_freq=h_freq)
-                for x in X])
+            with redirect_stdout(io.StringIO()):
+                X_filt = np.array([mne.filter.filter_data(
+                    x, sfreq=sfreq, l_freq=l_freq, h_freq=h_freq)
+                    for x in X])
             features.append(csp.transform(X_filt))
         return np.concatenate(features, axis=1)
 
@@ -262,7 +266,11 @@ freq_ranges = [(8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)]
 # 使用示例
 pipeline = Pipeline([
     ('fb_csp', SafeFBCSP(sfreq=sfreq, freq_ranges=freq_ranges)),
-    ('lda', LDA())
+    ('sacle', StandardScaler()),
+    # ('sacle', RobustScaler()),  # Against outlier
+    # ('svc', SVC(kernel='linear', C=0.01)),
+    # ('svc', SVC(kernel='rbf', C=0.01)),
+    ('lda', LDA(solver='lsqr', shrinkage='auto'))
 ])
 
 # MEG signal shape is (n_epochs, n_meg_channels, n_times)
@@ -274,9 +282,14 @@ cv_scores = cross_val_score(
     pipeline, X, y, groups=groups, cv=LeaveOneGroupOut())
 
 print(f'{cv_scores=}')
+np.save(data_directory.joinpath('cv_scores.npy'), cv_scores)
+
+# %%
+print(subject_name, cv_scores)
 
 
 # %% ---- 2025-08-04 ------------------------
 # Pending
 
+# %%
 # %%
