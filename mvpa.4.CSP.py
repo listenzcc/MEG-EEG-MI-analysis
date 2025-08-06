@@ -49,7 +49,7 @@ mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
-subject_directory = Path("./rawdata/S07_20231220")
+# subject_directory = Path("./rawdata/S07_20231220")
 
 # Use the arguments
 # parse = argparse.ArgumentParser('Compute TFR')
@@ -60,11 +60,11 @@ subject_directory = Path("./rawdata/S07_20231220")
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.CSP/{subject_name}')
-data_directory.mkdir(parents=True, exist_ok=True)
+# data_directory = Path(f'./data/MVPA.CSP/{subject_name}')
+# data_directory.mkdir(parents=True, exist_ok=True)
 
-pdf_path = data_directory / f'decoding-{mode}-band-{band_name}.pdf'
-dump_path = Path(pdf_path).with_suffix('.dump')
+# pdf_path = data_directory / f'decoding-{mode}-band-{band_name}.pdf'
+# dump_path = Path(pdf_path).with_suffix('.dump')
 
 # %%
 min_freq = 3.0

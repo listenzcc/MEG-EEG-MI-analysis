@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-08-04 ------------------------
 # Requirements and constants
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.model_selection import cross_val_score, StratifiedKFold, LeaveOneGroupOut
@@ -167,7 +168,7 @@ def filter_bank_csp(epochs, freq_ranges, groups):
 
         # 创建管道
         pipeline = Pipeline([
-            ('CSP', CSP(n_components=4, reg=None, log=False, norm_trace=False)),
+            ('CSP', CSP(n_components=6, reg=None, log=False, norm_trace=False)),
             # ('Scaler', StandardScaler()),  # 添加标准化
             ('LDA', LDA(solver='lsqr', shrinkage='auto'))
         ])
@@ -243,6 +244,7 @@ class SafeFBCSP(BaseEstimator, TransformerMixin):
                     for x in X])
 
                 # 训练CSP
+                # ? Does CSP require its own scaler?
                 csp = CSP(n_components=self.n_components)
                 csp.fit(X_filt, y)
             self.csp_filters[(l_freq, h_freq)] = csp
@@ -261,15 +263,16 @@ class SafeFBCSP(BaseEstimator, TransformerMixin):
 
 
 sfreq = epochs.info['sfreq']
-freq_ranges = [(8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)]
+freq_ranges = [(4, 8), (8, 12), (12, 16), (16, 20),
+               (20, 24), (24, 28), (28, 32)]
 
-# 使用示例
+# pipeline
 pipeline = Pipeline([
     ('fb_csp', SafeFBCSP(sfreq=sfreq, freq_ranges=freq_ranges)),
-    ('sacle', StandardScaler()),
-    # ('sacle', RobustScaler()),  # Against outlier
+    # ('sacle', StandardScaler()),
+    ('sacle', RobustScaler()),  # Against outlier
     # ('svc', SVC(kernel='linear', C=0.01)),
-    # ('svc', SVC(kernel='rbf', C=0.01)),
+    ('select', SelectKBest(score_func=mutual_info_classif, k=50)),  # MI特征选择，k为保留特征数
     ('lda', LDA(solver='lsqr', shrinkage='auto'))
 ])
 
