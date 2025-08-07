@@ -33,7 +33,7 @@ from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'meg'  # 'meg', 'eeg'
+mode = 'eeg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -146,6 +146,80 @@ print(f'{epochs=}')
 # %% ---- 2025-08-04 ------------------------
 # Play ground
 # Setup freq ranges
+
+
+def filter_bank_csp(epochs, freq_ranges, groups):
+
+    y = epochs.events[:, 2]
+    cv = np.max(groups) + 1
+
+    band_features = []
+    band_scores = {}
+
+    for l_freq, h_freq in tqdm(freq_ranges, 'Working with freq_ranges'):
+        # 复制epochs并滤波
+        with redirect_stdout(io.StringIO()):
+            epochs_filt = epochs.copy().filter(l_freq=l_freq, h_freq=h_freq)
+
+        X_filt = epochs_filt.get_data(copy=False)
+        # X_filt = np.asarray(X_filt, dtype=np.float64)
+        print(X_filt.shape, type(X_filt))
+        print(y.shape, type(y))
+
+        # 创建管道
+        pipeline = Pipeline([
+            ('CSP', CSP(n_components=6, reg=None, log=False, norm_trace=False)),
+            # ('Scaler', StandardScaler()),  # 添加标准化
+            ('LDA', LDA(solver='lsqr', shrinkage='auto'))
+        ])
+
+        scoring = make_scorer(accuracy_score, greater_is_better=True)
+
+        # 交叉验证
+        print('---- Cross validation ----')
+        with redirect_stdout(io.StringIO()):
+            cv_scores = cross_val_score(
+                pipeline, X_filt, y,
+                groups=groups,
+                # cv=cv,
+                cv=LeaveOneGroupOut(),
+                # n_jobs=n_jobs,
+                scoring=scoring
+            )
+        mean_score = np.mean(cv_scores)
+        band_scores[(l_freq, h_freq)] = mean_score
+
+        # 训练完整模型获取特征
+        print('---- Get CSP features ----')
+        with redirect_stdout(io.StringIO()):
+            pipeline.fit(X_filt, y)
+        features = pipeline.named_steps['CSP'].transform(X_filt)
+        band_features.append(features)
+
+    # 组合所有频带特征
+    X_combined = np.concatenate(band_features, axis=1)
+
+    # 评估组合特征
+    combined_score = np.mean(cross_val_score(
+        LDA(), X_combined, y,
+        cv=LeaveOneGroupOut(),
+        # cv=StratifiedKFold(n_splits=cv, shuffle=True),
+        n_jobs=n_jobs
+    ))
+
+    return {
+        'band_scores': band_scores,
+        'combined_score': combined_score,
+        'band_features': band_features,
+        'combined_features': X_combined
+    }
+
+
+# freq_ranges = [(8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)]
+# res = filter_bank_csp(epochs, freq_ranges, groups)
+# print(f'{res=}')
+# res['band_scores']
+# res['combined_score']
 
 
 # %% ---- 2025-08-04 ------------------------
