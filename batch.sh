@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script=0.read.evoked.py
-script=mvpa.5.FBCSP.py
+script=mvpa.4.CSP.py
 
 
 python $script -s ./rawdata/S01_20220119 &

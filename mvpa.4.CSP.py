@@ -18,7 +18,8 @@ Functions:
 
 # %% ---- 2025-07-21 ------------------------
 # Requirements and constants
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import classification_report
+from sklearn.model_selection import cross_val_score, StratifiedKFold, LeaveOneGroupOut, ShuffleSplit, cross_val_predict
 import joblib
 import matplotlib
 
@@ -52,16 +53,16 @@ subject_directory = Path('./rawdata/S01_20220119')
 # subject_directory = Path("./rawdata/S07_20231220")
 
 # Use the arguments
-# parse = argparse.ArgumentParser('Compute TFR')
-# parse.add_argument('-s', '--subject-dir', required=True)
-# args = parse.parse_args()
-# subject_directory = Path(args.subject_dir)
+parse = argparse.ArgumentParser('Compute freq CSP')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+subject_directory = Path(args.subject_dir)
 
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-# data_directory = Path(f'./data/MVPA.CSP/{subject_name}')
-# data_directory.mkdir(parents=True, exist_ok=True)
+data_directory = Path(f'./data/MVPA.CSP/{subject_name}')
+data_directory.mkdir(parents=True, exist_ok=True)
 
 # pdf_path = data_directory / f'decoding-{mode}-band-{band_name}.pdf'
 # dump_path = Path(pdf_path).with_suffix('.dump')
@@ -108,17 +109,17 @@ def read_data():
         md.add_proj()
         md.generate_epochs(**epochs_kwargs)
 
-        md.eeg_epochs.load_data()
-        md.meg_epochs.load_data()
+        if mode in ['eeg', 'all']:
+            md.eeg_epochs.load_data()
+            md.eeg_epochs.filter(**filter_kwargs)
+            md.eeg_epochs.crop(tmin=-1, tmax=4)
+            md.eeg_epochs.apply_baseline((-1, 0))
 
-        md.eeg_epochs.filter(**filter_kwargs)
-        md.meg_epochs.filter(**filter_kwargs)
-
-        md.eeg_epochs.crop(tmin=-1, tmax=4)
-        md.meg_epochs.crop(tmin=-1, tmax=4)
-
-        md.eeg_epochs.apply_baseline((-1, 0))
-        md.meg_epochs.apply_baseline((-1, 0))
+        if mode in ['meg', 'all']:
+            md.meg_epochs.load_data()
+            md.meg_epochs.filter(**filter_kwargs)
+            md.meg_epochs.crop(tmin=-1, tmax=4)
+            md.meg_epochs.apply_baseline((-1, 0))
 
     return mds, event_id
 
@@ -126,12 +127,22 @@ def read_data():
 def concat_epochs(mds: list[MyData]):
     groups = []
     for i, e in enumerate(mds):
-        groups.extend([i for _ in range(len(e.meg_epochs))])
+        if mode in ['eeg', 'all']:
+            groups.extend([i for _ in range(len(e.eeg_epochs))])
+        else:
+            groups.extend([i for _ in range(len(e.meg_epochs))])
 
-    eeg_epochs = mne.concatenate_epochs(
-        [md.eeg_epochs for md in tqdm(mds, 'Concat EEG Epochs')])
-    meg_epochs = mne.concatenate_epochs(
-        [md.meg_epochs for md in tqdm(mds, 'Concat MEG Epochs')])
+    if mode in ['eeg', 'all']:
+        eeg_epochs = mne.concatenate_epochs(
+            [md.eeg_epochs for md in tqdm(mds, 'Concat EEG Epochs')])
+    else:
+        eeg_epochs = None
+
+    if mode in ['meg', 'all']:
+        meg_epochs = mne.concatenate_epochs(
+            [md.meg_epochs for md in tqdm(mds, 'Concat MEG Epochs')])
+    else:
+        meg_epochs = None
 
     return eeg_epochs, meg_epochs, groups
 
@@ -156,28 +167,44 @@ else:
     raise ValueError(f'Unknown mode: {mode}')
 
 
-epochs = epochs.resample(50, npad="auto")  # resample to 50 Hz
+# epochs = epochs.resample(100, npad="auto")  # resample to 100 Hz
 
-cv = np.max(groups)+1
+# cv = np.max(groups)+1
 # MEG signals: n_epochs, n_meg_channels, n_times
 X = epochs.get_data(copy=False)
 y = epochs.events[:, 2]  # target
 
-# %%
+print(f'{X.shape=}, {y.shape=}, {np.array(groups).shape=}')
 
+# %%
 scoring = make_scorer(accuracy_score, greater_is_better=True)
 
 clf = make_pipeline(
-    CSP(n_components=4, reg=None, log=False, norm_trace=False),
+    CSP(n_components=4),
     LinearDiscriminantAnalysis(),
 )
+
+# %%
+cv = LeaveOneGroupOut()
 res = cross_val_score(estimator=clf, X=X, y=y,
                       groups=groups, cv=cv, scoring=scoring)
 print(res)
 
 # %%
+cv = LeaveOneGroupOut()
+y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
+print(y_pred)
+
+# %%
+print(classification_report(y_true=y, y_pred=y_pred))
+
+# %%
 # init scores
-freq_scores = {}
+freq_CSP_results = {
+    'subject_name': subject_name,
+    'y_true': y,
+    'mode': mode,
+}
 
 # Loop through each frequency range of interest
 for freq, (fmin, fmax) in enumerate(freq_ranges):
@@ -190,13 +217,18 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 
     X = epochs_filter.get_data(copy=False)
 
-    # Save scores over folds for each frequency and time window
-    scores = cross_val_score(estimator=clf, X=X, y=y,
-                             groups=groups, cv=cv, scoring=scoring)
-    print(freq, scores)
-    freq_scores[freq] = scores
+    cv = LeaveOneGroupOut()
+    y_pred = cross_val_predict(
+        estimator=clf, X=X, y=y, groups=groups, cv=cv)
 
-print(freq_scores)
+    print(classification_report(y_true=y, y_pred=y_pred))
+    freq_CSP_results[freq] = {
+        'fmin': fmin,
+        'fmax': fmax,
+        'y_pred': y_pred}
+
+print(freq_CSP_results)
+joblib.dump(freq_CSP_results, data_directory.joinpath('freq-CSP-results.dump'))
 
 
 # %% ---- 2025-07-21 ------------------------

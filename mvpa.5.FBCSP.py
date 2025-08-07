@@ -21,7 +21,7 @@ Functions:
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler, RobustScaler
-from sklearn.model_selection import cross_val_score, StratifiedKFold, LeaveOneGroupOut
+from sklearn.model_selection import cross_val_score, StratifiedKFold, LeaveOneGroupOut, ShuffleSplit
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, make_scorer
 from mne.decoding import CSP
@@ -33,7 +33,7 @@ from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'meg'  # 'meg', 'eeg'
+mode = 'eeg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -207,6 +207,7 @@ X = epochs.get_data(copy=False)
 y = epochs.events[:, 2]  # target
 print(f'{X=}, {y=}, {groups=}')
 
+# CV with LeaveOneGroupOut
 cv_scores = cross_val_score(
     pipeline, X, y, groups=groups, cv=LeaveOneGroupOut())
 
