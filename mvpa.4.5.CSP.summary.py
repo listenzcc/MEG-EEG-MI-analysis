@@ -32,7 +32,15 @@ data_files = list(data_directory.rglob('*.dump'))
 data_files.sort()
 print(data_files)
 
-data = []
+
+def vote(preds):
+    candidates = {k: 0 for k in [1, 2, 3, 4, 5]}
+    for e in preds:
+        candidates[e] += 1
+    return sorted(candidates.items(), key=lambda e: e[1])
+
+
+accs = []
 for f in data_files:
     d = joblib.load(f)
     y_true = d['y_true']
@@ -42,22 +50,12 @@ for f in data_files:
     y_pred = [vote(e)[-1][0] for e in y_preds.T]
     print(d['subject_name'])
     print(classification_report(y_true=y_true, y_pred=y_pred))
+    acc = accuracy_score(y_true=y_true, y_pred=y_pred)
+    accs.append(acc)
+
+print(np.mean(accs))
 
 # %%
-
-
-def vote(preds):
-    candidates = {k: 0 for k in [1, 2, 3, 4, 5]}
-    for e in preds:
-        candidates[e] += 1
-    return sorted(candidates.items(), key=lambda e: e[1])
-
-
-y_pred = [vote(e)[-1][0] for e in y_preds.T]
-
-print(f'{y_true=}, {y_pred=}')
-
-print(classification_report(y_true=y_true, y_pred=y_pred))
 
 
 # %%

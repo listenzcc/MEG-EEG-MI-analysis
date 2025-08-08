@@ -46,7 +46,7 @@ from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'meg'  # 'meg', 'eeg'
+mode = 'eeg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
