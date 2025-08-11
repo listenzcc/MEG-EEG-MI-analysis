@@ -28,7 +28,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import accuracy_score, make_scorer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
 
 from mne.decoding import (
     CSP,
@@ -46,7 +47,7 @@ from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -177,26 +178,26 @@ y = epochs.events[:, 2]  # target
 print(f'{X.shape=}, {y.shape=}, {np.array(groups).shape=}')
 
 # %%
-scoring = make_scorer(accuracy_score, greater_is_better=True)
+# scoring = make_scorer(accuracy_score, greater_is_better=True)
 
-clf = make_pipeline(
-    CSP(n_components=4),
-    LinearDiscriminantAnalysis(),
-)
-
-# %%
-cv = LeaveOneGroupOut()
-res = cross_val_score(estimator=clf, X=X, y=y,
-                      groups=groups, cv=cv, scoring=scoring)
-print(res)
+# clf = make_pipeline(
+#     CSP(n_components=4),
+#     LinearDiscriminantAnalysis(),
+# )
 
 # %%
-cv = LeaveOneGroupOut()
-y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
-print(y_pred)
+# cv = LeaveOneGroupOut()
+# res = cross_val_score(estimator=clf, X=X, y=y,
+#                       groups=groups, cv=cv, scoring=scoring)
+# print(res)
 
 # %%
-print(classification_report(y_true=y, y_pred=y_pred))
+# cv = LeaveOneGroupOut()
+# y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
+# print(y_pred)
+# print(classification_report(y_true=y, y_pred=y_pred))
+
+# %%
 
 # %%
 # init scores
@@ -218,6 +219,13 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs_filter.get_data(copy=False)
 
     cv = LeaveOneGroupOut()
+    clf = make_pipeline(
+        CSP(n_components=8),
+        # StandardScaler(),  # Against outlier
+        # SelectKBest(score_func=mutual_info_classif, k=50),  # MI特征选择，k为保留特征数
+        LinearDiscriminantAnalysis(),
+        # LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
+    )
     y_pred = cross_val_predict(
         estimator=clf, X=X, y=y, groups=groups, cv=cv)
 
