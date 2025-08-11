@@ -34,6 +34,7 @@ class Bands:
             'alpha': (8, 12),
             # 'beta': (12, 30),
             'beta': (15, 24),  # The project uses this beta band.
+            'beta2': (24, 30),  # The project uses this beta band.
             'gamma': (30, 45),
             'all': (0.1, 30)
         }

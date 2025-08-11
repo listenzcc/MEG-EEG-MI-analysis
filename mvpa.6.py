@@ -87,6 +87,7 @@ def read_data():
 
 
 def concat_epochs(mds: list[MyData]):
+    # Mark groups
     groups = []
     for i, e in enumerate(mds):
         if mode in ['eeg', 'all']:
@@ -94,12 +95,14 @@ def concat_epochs(mds: list[MyData]):
         else:
             groups.extend([i for _ in range(len(e.meg_epochs))])
 
+    # Load eeg epochs
     if mode in ['eeg', 'all']:
         eeg_epochs = mne.concatenate_epochs(
             [md.eeg_epochs for md in tqdm(mds, 'Concat EEG Epochs')])
     else:
         eeg_epochs = None
 
+    # Load meg epochs
     if mode in ['meg', 'all']:
         meg_epochs = mne.concatenate_epochs(
             [md.meg_epochs for md in tqdm(mds, 'Concat MEG Epochs')])
@@ -133,20 +136,24 @@ def decoding(epochs):
     )
     y_pred = cross_val_predict(clf, X, y, groups=groups, cv=cv)
 
+    report = metrics.classification_report(y_true=y, y_pred=y_pred)
     print(subject_name)
-    print(metrics.classification_report(y_true=y, y_pred=y_pred))
+    print(report)
 
     return {
         'y_true': y,
         'y_pred': y_pred,
-        'subject': subject_name
+        'subject': subject_name,
+        'report': report
     }
 
 
+# EEG decoding
 eeg_res = decoding(eeg_epochs)
-meg_res = decoding(meg_epochs)
-
 save(eeg_res, data_directory.joinpath('res-eeg.dump'))
+
+# MEG decoding
+meg_res = decoding(meg_epochs)
 save(meg_res, data_directory.joinpath('res-meg.dump'))
 
 # %% ---- 2025-08-11 ------------------------

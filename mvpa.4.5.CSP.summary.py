@@ -26,7 +26,7 @@ plt.show()
 
 # %%
 # Summary the CSP
-data_directory = Path('./data/MVPA.CSP')
+data_directory = Path('./data/MVPA.FBCSP.vote')
 
 data_files = list(data_directory.rglob('*.dump'))
 data_files.sort()
