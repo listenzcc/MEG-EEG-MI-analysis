@@ -48,7 +48,7 @@ from util.io.file import save
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -166,7 +166,7 @@ print(meg_epochs)
 # Play ground
 
 if mode == 'meg':
-    epochs = meg_epochs.copy()  # .pick_types(meg=True, ref_meg=False)
+    epochs = meg_epochs.copy().pick_types(meg=True, ref_meg=False)
 elif mode == 'eeg':
     epochs = eeg_epochs.copy()
 else:
@@ -199,24 +199,32 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs_filter.get_data(copy=False)
 
     cv = LeaveOneGroupOut()
+
     clf = make_pipeline(
         Scaler(epochs_filter.info),
         CSP(),
-        # CSP(cov_est='epoch'),
         # StandardScaler(),  # Scaler
         # SelectKBest(score_func=mutual_info_classif, k=50),  # MI特征选择，k为保留特征数
         # PCA(),
-        LinearDiscriminantAnalysis(),
+        # LinearDiscriminantAnalysis(),
+        LogisticRegression(penalty='elasticnet', solver='saga',
+                           l1_ratio=0.2),
         # LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
     )
-    y_pred = cross_val_predict(
-        estimator=clf, X=X, y=y, groups=groups, cv=cv)
+    y_proba = cross_val_predict(
+        estimator=clf, X=X, y=y, groups=groups, cv=cv, method='predict_proba')
+    y_pred = np.argmax(y_proba, axis=1) + 1
+
+    # y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
 
     print(classification_report(y_true=y, y_pred=y_pred))
     freq_CSP_results[freq] = {
         'fmin': fmin,
         'fmax': fmax,
+        'y_proba': y_proba,
         'y_pred': y_pred}
+
+# %%
 
 print(freq_CSP_results)
 save(freq_CSP_results, data_directory.joinpath('freq-CSP-results.dump'))
