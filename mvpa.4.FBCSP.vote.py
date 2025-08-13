@@ -79,7 +79,7 @@ data_directory.mkdir(parents=True, exist_ok=True)
 bands = Bands()
 freq_ranges = [v for v in bands.bands.values()]
 
-# freq_ranges = [(e, e+4) for e in range(1, 45, 2)]
+freq_ranges = [(e, e+4) for e in range(1, 45, 2)]
 
 freq_ranges
 
@@ -189,12 +189,12 @@ freq_CSP_results = {
 }
 
 # Loop through each frequency range of interest
-for freq, (fmin, fmax) in enumerate(freq_ranges):
+for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
     filter_kwargs = {'l_freq': fmin, 'h_freq': fmax, 'n_jobs': n_jobs}
     epochs_filter = epochs.copy()
     epochs_filter.filter(**filter_kwargs)
     epochs_filter.apply_baseline((-1, 0))
-    epochs_filter.crop(tmin=0, tmax=3)
+    epochs_filter.crop(tmin=0, tmax=4)
 
     X = epochs_filter.get_data(copy=False)
 
@@ -207,8 +207,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         # SelectKBest(score_func=mutual_info_classif, k=50),  # MI特征选择，k为保留特征数
         # PCA(),
         # LinearDiscriminantAnalysis(),
-        LogisticRegression(penalty='elasticnet', solver='saga',
-                           l1_ratio=0.2),
+        LogisticRegression(),
+        # LogisticRegression(penalty='elasticnet', solver='saga', l1_ratio=0.5),
         # LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
     )
     y_proba = cross_val_predict(
@@ -218,7 +218,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
 
     print(classification_report(y_true=y, y_pred=y_pred))
-    freq_CSP_results[freq] = {
+    freq_CSP_results[freqIdx] = {
         'fmin': fmin,
         'fmax': fmax,
         'y_proba': y_proba,
