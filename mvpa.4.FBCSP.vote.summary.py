@@ -7,7 +7,7 @@ from util.io.file import load
 
 # %%
 # Summary the CSP
-data_directory = Path('./data/MVPA.FBCSP.vote')
+data_directory = Path('./data/MVPA.FBCSP.vote.meg.fine')
 
 data_files = list(data_directory.rglob('*.dump'))
 data_files.sort()
@@ -25,13 +25,23 @@ data = []
 yy_true = []
 yy_pred = []
 yy_pred_2 = []
+y_probas_stack = []
+y_true_stack = []
 for f in data_files:
     d = load(f)
     subject = d['subject_name']
 
+    # y_true shape: samples
     y_true = d['y_true']
+    y_true_stack.append(y_true)
+
+    # y_preds shape: bands x samples
     y_preds = [v['y_pred'] for k, v in d.items() if isinstance(k, int)]
+
+    # y_probas shape: bands x samples x classes
     y_probas = [v['y_proba'] for k, v in d.items() if isinstance(k, int)]
+    y_probas_stack.append(y_probas)
+
     for i, y_pred in enumerate(y_preds):
         acc = accuracy_score(y_true=y_true, y_pred=y_pred)
         data.append({'subject': subject, 'acc': acc, 'freqIdx': i})
@@ -66,5 +76,10 @@ print(metrics.classification_report(y_true=yy_true, y_pred=yy_pred_2))
 print(metrics.confusion_matrix(y_true=yy_true, y_pred=yy_pred_2))
 
 # %%
+y_probas_stack = np.concat(y_probas_stack, axis=1)
+print(y_probas_stack.shape)
+
+y_true_stack = np.concat(y_true_stack)
+print(y_true_stack.shape)
 
 # %%
