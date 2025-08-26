@@ -139,16 +139,23 @@ def make_df(table, band):
 
 
 # In[ ]:
-
-
-class EEG_Opt:
-    mode = 'EEG'
+class BasicOpt:
     vmin = -0.5
-    vmax = 0.5
-    vcenter = 0
+    vmax = 0
+    vcenter = -0.25
     cmap = 'RdBu'
     norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
     scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
+
+
+class EEG_Opt(BasicOpt):
+    mode = 'EEG'
+    # vmin = -0.5
+    # vmax = 0.5
+    # vcenter = 0
+    # cmap = 'RdBu'
+    # norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    # scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
     pattern = 'eeg-logratio-*-average-tfr.h5'
     fpath = cache_dir.joinpath('eeg-logratio-averaged-df.h5')
     evoked = md.eeg_epochs['1'][0].average()
@@ -156,14 +163,14 @@ class EEG_Opt:
     pdf_path = pdf_directory.joinpath('EEG.pdf')
 
 
-class MEG_Opt:
+class MEG_Opt(BasicOpt):
     mode = 'MEG'
-    vmin = -0.5
-    vmax = 0.5
-    vcenter = 0
-    cmap = 'RdBu'
-    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
-    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
+    # vmin = -0.5
+    # vmax = 0.5
+    # vcenter = 0
+    # cmap = 'RdBu'
+    # norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    # scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
     pattern = 'meg-logratio-*-average-tfr.h5'
     fpath = cache_dir.joinpath('meg-logratio-averaged-df.h5')
     evoked = md.meg_epochs['1'][0].average()
