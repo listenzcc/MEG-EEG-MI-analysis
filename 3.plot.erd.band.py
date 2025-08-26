@@ -73,27 +73,23 @@ def append_averaged_subject(df: pd.DataFrame):
 
 # %% ---- 2025-06-24 ------------------------
 # Play ground
-
-class EEG_Opt:
+class BasicOpt:
     vmin = -0.5
-    vmax = 0.5
-    vcenter = 0
+    vmax = 0
+    vcenter = -0.25
     cmap = 'RdBu'
+    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
+
+
+class EEG_Opt(BasicOpt):
     pattern = 'eeg-logratio-*-average-tfr.h5'
     output_fname = 'data/img/ERD-band/eeg-{}Band.png'
-    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
-    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 
 
-class MEG_Opt:
-    vmin = -0.5
-    vmax = 0.5
-    vcenter = 0
-    cmap = 'RdBu'
+class MEG_Opt(BasicOpt):
     pattern = 'meg-logratio-*-average-tfr.h5'
     output_fname = 'data/img/ERD-band/meg-{}Band.png'
-    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
-    scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 
 
 for opt in [EEG_Opt, MEG_Opt]:
