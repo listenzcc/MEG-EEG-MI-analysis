@@ -84,12 +84,14 @@ class BasicOpt:
 
 
 class EEG_Opt(BasicOpt):
+    mode = 'EEG'
     channels = ['C3', 'Cz', 'C4']
     pattern = 'eeg-logratio-*-average-tfr.h5'
     output_fname = 'data/img/ERD-example-channels/eeg-evt-{}.png'
 
 
 class MEG_Opt(BasicOpt):
+    mode = 'MEG'
     channels = ['MLC42', 'MZC03', 'MRC42']
     pattern = 'meg-logratio-*-average-tfr.h5'
     output_fname = 'data/img/ERD-example-channels/meg-evt-{}.png'
@@ -105,11 +107,22 @@ for opt in [EEG_Opt, MEG_Opt]:
 
     evts = sorted(df['evt'].unique())
     names = sorted(df['name'].unique())
+
+    # For every event, plot all subjects and channels
     rows = len(names)
     cols = len(opt.channels)
     print(names, evts)
 
-    for evt in evts:
+    # Plot all events in one figure using 'average' subject
+    fig1_width = 4 * cols  # inch
+    fig1_rows = len(evts)
+    fig1_height = 4 * fig1_rows  # inch
+    fig1, axes1 = plt.subplots(
+        fig1_rows, cols+1,
+        figsize=(fig1_width, fig1_height),
+        gridspec_kw={"width_ratios": [10] * cols + [1]})
+
+    for i_evt, evt in enumerate(evts):
         fig_width = 4 * cols  # inch
         fig_height = 4 * rows  # inch
         fig, axes = plt.subplots(
@@ -117,23 +130,30 @@ for opt in [EEG_Opt, MEG_Opt]:
             figsize=(fig_width, fig_height),
             gridspec_kw={"width_ratios": [10] * cols + [1]})
 
-        for name, chn in tqdm(itertools.product(names, opt.channels), 'Plotting'):
-            i = names.index(name)
-            j = opt.channels.index(chn)
-            ax = axes[i, j]
-
+        for name, chn in tqdm(itertools.product(names, opt.channels), 'Plotting', total=len(names)*len(opt.channels)):
             query = ' & '.join(
                 [f'name=="{name}"', f'evt=="{evt}"', f'channel=="{chn}"'])
             _df = df.query(query)
 
-            ax.scatter(_df['time'], _df['freq'],
-                       c=_df['value'], **opt.scatter_kwargs)
-            ax.set_title(f'ERD @chn: {chn}, @sub: {name}')
-            ax.set_xlabel('Time (s)')
-            if j == 0:
-                ax.set_ylabel(f'Freq (Hz)')
-            else:
-                ax.set_yticks([])
+            def draw_in_ax(ax, j):
+                ax.scatter(_df['time'], _df['freq'],
+                           c=_df['value'], **opt.scatter_kwargs)
+                ax.set_title(f'ERD @chn: {chn}, @evt: {evt}, @sub: {name}')
+                ax.set_xlabel('Time (s)')
+                if j == 0:
+                    ax.set_ylabel(f'Freq (Hz)')
+                else:
+                    ax.set_yticks([])
+
+            # Draw in fig
+            i = names.index(name)
+            j = opt.channels.index(chn)
+            ax = axes[i, j]
+            draw_in_ax(ax, j)
+
+            if name == 'Averaged':
+                ax = axes1[i_evt, j]
+                draw_in_ax(ax, j)
 
         for i in range(rows):
             fig.colorbar(axes[i, 0].collections[0], cax=axes[i, cols],
@@ -143,6 +163,15 @@ for opt in [EEG_Opt, MEG_Opt]:
         f = opt.output_fname.format(evt)
         fig.savefig(f)
         logger.info(f'Wrote: {f}')
+
+    for i in range(fig1_rows):
+        fig1.colorbar(axes1[i, 0].collections[0], cax=axes1[i, cols],
+                      orientation='vertical').ax.set_yscale('linear')
+    fig1.tight_layout()
+    output_path = Path(opt.output_fname.format(
+        0)).with_name(f'{opt.mode}.png')
+    fig1.savefig(output_path)
+    logger.info(f'Wrote: {f}')
 
 # %% ---- 2025-06-24 ------------------------
 # Pending
