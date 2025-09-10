@@ -3,6 +3,7 @@ import io
 import re
 import mne
 import sys
+import json
 import argparse
 import itertools
 import numpy as np
