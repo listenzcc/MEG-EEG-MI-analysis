@@ -7,6 +7,9 @@ Copyright & Email: chuncheng.zhang@ia.ac.cn
 Purpose:
     MPVA with raw epochs.
     The MEG sensors are selected by their locations.
+    It performs time-generation MVPA in MEG areas.
+    The MEG areas are located by ch_names.
+    See check_epochs.py for detail.
 
 Functions:
     1. Requirements and constants
@@ -155,6 +158,8 @@ scoring = make_scorer(accuracy_score, greater_is_better=True)
 meg_ch_name_dct = json.load(open('./data/meg_ch_name_dct.json'))
 for ch_mark, ch_names in meg_ch_name_dct.items():
     epochs = epochs_raw.copy()
+    # Make sure the ch_names are all available
+    ch_names = [e for e in ch_names if e in epochs.ch_names]
     epochs.pick(ch_names)
 
     pdf_path = data_directory / f'decoding-{mode}-chmark-{ch_mark}.pdf'

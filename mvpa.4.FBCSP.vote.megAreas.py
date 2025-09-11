@@ -5,8 +5,7 @@ Date: 2025-07-21
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    MPVA using FBCSP method, the proba of each bands are recorded to summary.
-    So the summary can be achieved by joint probability.
+    MEG areas version for FBCSP voting method.
 
 Functions:
     1. Requirements and constants
@@ -49,7 +48,7 @@ from util.io.file import save
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -64,22 +63,16 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.FBCSP.vote/{subject_name}')
+data_directory = Path(f'./data/MVPA.FBCSP.megAreas.vote/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # %%
-# min_freq = 3.0
-# max_freq = 25.0
-# n_freqs = 12  # how many frequency bins to use
-
-# # Assemble list of frequency range tuples
-# freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies
-# freq_ranges = list(zip(freqs[:-1], freqs[1:]))  # make freqs list of tuples
-# freqs, freq_ranges
-
 bands = Bands()
+
+# Bands with known band names.
 freq_ranges = [v for v in bands.bands.values()]
 
+# Bands with fine segments.
 freq_ranges = [(e, e+4) for e in range(1, 45, 2)]
 
 freq_ranges
@@ -186,8 +179,11 @@ freq_CSP_results = {
     'subject_name': subject_name,
     'y_true': y,
     'mode': mode,
-    'freqs': freq_ranges
+    'freqs': freq_ranges,
+    'results': []
 }
+
+meg_ch_name_dct = json.load(open('./data/meg_ch_name_dct.json'))
 
 # Loop through each frequency range of interest
 for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
@@ -197,33 +193,35 @@ for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
     epochs_filter.apply_baseline((-1, 0))
     epochs_filter.crop(tmin=0, tmax=4)
 
-    X = epochs_filter.get_data(copy=False)
+    for ch_mark, ch_names in meg_ch_name_dct.items():
+        _epochs = epochs_filter.copy()
+        # Make sure the ch_names are all available
+        ch_names = [e for e in ch_names if e in _epochs.ch_names]
+        _epochs.pick(ch_names)
 
-    cv = LeaveOneGroupOut()
+        X = _epochs.get_data(copy=False)
 
-    clf = make_pipeline(
-        Scaler(epochs_filter.info),
-        CSP(),
-        # StandardScaler(),  # Scaler
-        # SelectKBest(score_func=mutual_info_classif, k=50),  # MI特征选择，k为保留特征数
-        # PCA(),
-        # LinearDiscriminantAnalysis(),
-        LogisticRegression(),
-        # LogisticRegression(penalty='elasticnet', solver='saga', l1_ratio=0.5),
-        # LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
-    )
-    y_proba = cross_val_predict(
-        estimator=clf, X=X, y=y, groups=groups, cv=cv, method='predict_proba')
-    y_pred = np.argmax(y_proba, axis=1) + 1
+        cv = LeaveOneGroupOut()
 
-    # y_pred = cross_val_predict(estimator=clf, X=X, y=y, groups=groups, cv=cv)
+        clf = make_pipeline(
+            Scaler(_epochs.info),
+            CSP(),
+            LogisticRegression(),
+        )
+        y_proba = cross_val_predict(
+            estimator=clf, X=X, y=y, groups=groups, cv=cv, method='predict_proba')
+        y_pred = np.argmax(y_proba, axis=1) + 1
 
-    print(classification_report(y_true=y, y_pred=y_pred))
-    freq_CSP_results[freqIdx] = {
-        'fmin': fmin,
-        'fmax': fmax,
-        'y_proba': y_proba,
-        'y_pred': y_pred}
+        print(classification_report(y_true=y, y_pred=y_pred))
+
+        freq_CSP_results['results'].append({
+            'freqIdx': freqIdx,
+            'ch_mark': ch_mark,
+            'fmin': fmin,
+            'fmax': fmax,
+            'y_proba': y_proba,
+            'y_pred': y_pred,
+        })
 
 # %%
 
