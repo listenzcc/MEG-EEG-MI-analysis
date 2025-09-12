@@ -62,7 +62,7 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.megAreas/{subject_name}')
+data_directory = Path(f'./data/MVPA.megAreas.withCoef/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -156,11 +156,16 @@ cv = np.max(groups)+1
 scoring = make_scorer(accuracy_score, greater_is_better=True)
 
 meg_ch_name_dct = json.load(open('./data/meg_ch_name_dct.json'))
+meg_ch_name_dct['ALL'] = None
 for ch_mark, ch_names in meg_ch_name_dct.items():
     epochs = epochs_raw.copy()
-    # Make sure the ch_names are all available
-    ch_names = [e for e in ch_names if e in epochs.ch_names]
-    epochs.pick(ch_names)
+
+    if ch_mark == 'ALL':
+        epochs.pick('mag')
+    else:
+        # Make sure the ch_names are all available
+        ch_names = [e for e in ch_names if e in epochs.ch_names]
+        epochs.pick(ch_names)
 
     pdf_path = data_directory / f'decoding-{mode}-chmark-{ch_mark}.pdf'
     dump_path = Path(pdf_path).with_suffix('.dump')
@@ -295,7 +300,9 @@ for ch_mark, ch_names in meg_ch_name_dct.items():
             'mode': mode,
             'band_name': band_name,
             'subject_name': subject_name,
-            'ch_mark': ch_mark
+            'ch_mark': ch_mark,
+            'coef': coef,
+            'ch_names': epochs.ch_names
         }, dump_path)
 
     print(f'Finished decoding {pdf_path}')
