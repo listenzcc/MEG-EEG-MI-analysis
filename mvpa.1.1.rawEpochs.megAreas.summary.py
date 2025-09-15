@@ -25,7 +25,7 @@ plt.style.use('ggplot')
 
 meg_ch_name_dct = json.load(open('./data/meg_ch_name_dct.json'))
 
-data_directory = Path('./data/MVPA.megAreas')
+data_directory = Path('./data/MVPA.megAreas.withCoef')
 
 
 # %% ---- 2025-09-10 ------------------------
@@ -43,7 +43,7 @@ evts = [1, 2, 3, 4, 5]
 # %%
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-for ch_mark in sorted(list(meg_ch_name_dct.keys())):
+for ch_mark in sorted(list(meg_ch_name_dct.keys())) + ['ALL']:
     files = list(data_directory.rglob(f'decoding-meg-chmark-{ch_mark}.dump'))
     objs = [load(file) for file in files]
     times = objs[0]['times']
@@ -54,19 +54,26 @@ for ch_mark in sorted(list(meg_ch_name_dct.keys())):
         ax = axes[0]
     elif ch_mark[0] == 'L':
         ax = axes[1]
-    else:
+    elif ch_mark[0] == 'R':
         ax = axes[2]
+    elif ch_mark == 'ALL':
+        ax = axes[0]
+    else:
+        raise ValueError()
 
     ax.plot(times, np.diag(scores_mean), label=f"score({ch_mark})")
 
-for ax in axes:
+for i, ax in enumerate(axes):
     ax.axhline(1/len(evts), color="gray", linestyle="--", label="chance")
     ax.set_xlabel("Times")
     ax.set_ylabel("AccScore")
     ax.legend(loc='lower right')  # , bbox_to_anchor=(1, 1))
     ax.axvline(0.0, color="gray", linestyle="-")
     ax.set_title(f"Decoding over time (mode: {mode})")
-    ax.set_ylim([0.15, 0.35])
+    if i == 0:
+        ax.set_ylim([0.15, 0.4])
+    else:
+        ax.set_ylim([0.15, 0.35])
 
 fig.tight_layout()
 fig.savefig(data_directory.joinpath('mvpa_megAreas_summary.png'))
