@@ -90,7 +90,12 @@ stc_files = find_stc_files('*.stc-lh.stc', data_directory)
 df2 = mk_stc_file_table(stc_files)
 df2['band'] = 'beta'
 
-df = pd.concat([df1, df2])
+data_directory = Path('./data/tfr-stc-gamma')
+stc_files = find_stc_files('*.stc-lh.stc', data_directory)
+df3 = mk_stc_file_table(stc_files)
+df3['band'] = 'gamma'
+
+df = pd.concat([df1, df2, df3])
 df.index = range(len(df))
 
 print('Reading stc')
@@ -105,7 +110,7 @@ data_directory = Path('./data/anova/')
 data_directory.mkdir(exist_ok=True, parents=True)
 
 modes = ['meg', 'eeg']
-bands = ['alpha', 'beta']
+bands = ['alpha', 'beta', 'gamma']
 evts = ['1', '2', '3', '4']
 
 for mode, band in itertools.product(modes, bands):

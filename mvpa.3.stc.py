@@ -60,8 +60,8 @@ subject_directory = Path("./rawdata/S07_20231220")
 
 subject_name = subject_directory.name
 
-data_directory = Path(f"./data/tfr-stc-beta/{subject_name}")
-data_directory.mkdir(parents=True, exist_ok=True)
+# data_directory = Path(f"./data/tfr-stc-beta/{subject_name}")
+# data_directory.mkdir(parents=True, exist_ok=True)
 
 ROI_labels = [
     # meg-alpha
@@ -103,7 +103,7 @@ def read_data():
     """
     # Setup options
     epochs_kwargs = {"tmin": -3, "tmax": 5, "decim": 6}
-    use_latest_ds_directories = 8  # 8
+    use_latest_ds_directories = 2  # 8
 
     # Read from file
     mds = []
@@ -199,15 +199,10 @@ def compute_stc(epochs, fwd, freqs, tmin, tmax):
     for stcs in tqdm(epochs_stcs_generator, 'Processing stcs'):
         stc = stcs[0]
         stc = stc.in_label(label_obj)
-        # Average across the freqs
-        data = np.stack([s.data for s in stcs], axis=0)
-
-        # Convert from complex to real
-        # data = np.abs(data)
-        # stc.data = data.mean(axis=0)
 
         stc.crop(tmin=-1, tmax=4)
         stc.apply_baseline((-1, 0))
+        stc.crop(tmin=0, tmax=4)
         output_stcs.append(stc)
 
     return output_stcs
@@ -248,6 +243,7 @@ print(stcs)
 cv = np.max(groups) + 1
 # MEG signals: n_epochs, n_meg_channels, n_times
 X = np.stack([stc.data for stc in stcs], axis=0)
+# Convert X from complex number to real number
 X = np.abs(X)
 y = epochs.events[:, 2]  # target
 print(X.shape)

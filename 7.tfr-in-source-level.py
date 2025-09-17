@@ -21,11 +21,12 @@ subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
-data_directory = Path(f'./data/tfr-stc-alpha/{subject_name}')
+data_directory = Path(f'./data/tfr-stc-gamma/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
-freqs = [e for e in range(8, 13)]  # alpha
+# freqs = [e for e in range(8, 13)]  # alpha
 # freqs = [e for e in range(15, 25)]  # beta
+freqs = [e for e in range(30, 45)]  # gamma
 
 # %%
 # md.generate_epochs(**dict(tmin=-2, tmax=5, decim=6))
