@@ -19,7 +19,9 @@ Functions:
 
 # %% ---- 2025-09-16 ------------------------
 # Requirements and constants
+from mne.decoding import get_coef
 from sklearn import metrics
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, make_scorer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
@@ -38,15 +40,15 @@ from mne.decoding import (
 )
 
 from util.easy_import import *
-from util.io.file import load
+from util.io.file import load, save
 
 # %%
 subject_directory = Path("./rawdata/S07_20231220")
 
-# parse = argparse.ArgumentParser('Compute TFR')
-# parse.add_argument('-s', '--subject-dir', required=True)
-# args = parse.parse_args()
-# subject_directory = Path(args.subject_dir)
+parse = argparse.ArgumentParser('Compute TFR')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
@@ -70,7 +72,9 @@ print(f'{X.shape=}, {y.shape=}, {times.shape=}, {groups.shape=}')
 # Pending
 clf = make_pipeline(
     StandardScaler(),
-    LinearModel(LogisticRegression(solver="liblinear"))
+    # LinearModel(LogisticRegression())
+    CSP(),
+    LogisticRegression()
 )
 
 scoring = make_scorer(accuracy_score, greater_is_better=True)
@@ -80,16 +84,30 @@ time_decod = SlidingEstimator(
 
 cv = LeaveOneGroupOut()
 
-raw_scores = cross_val_multiscore(
+# Scores for each group, shape is (n_groups, n_times)
+scores = cross_val_multiscore(
     time_decod, X, y, groups=groups, cv=cv, n_jobs=n_jobs)
 
 # Mean scores across cross-validation splits
-scores = np.mean(raw_scores, axis=0)
+avg_scores = np.mean(scores, axis=0)
 
-print(scores)
+# Train again on the whole data
+time_decod.fit(X, y)
+try:
+    # Coef of time_decod, shape is (n_features, n_classes, n_times)
+    coef = get_coef(time_decod)
+except Exception:
+    coef = None
+trained = {
+    'scores': scores,
+    'coef': coef
+}
+save(trained, data_directory.joinpath('trained.dump'))
 
 # %% ---- 2025-09-16 ------------------------
 # Pending
-plt.plot(times, scores)
+
+# %%
+
 
 # %%
