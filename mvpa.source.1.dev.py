@@ -34,10 +34,10 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 # %%
 subject_directory = Path("./rawdata/S07_20231220")
 
-parse = argparse.ArgumentParser('Compute TFR')
-parse.add_argument('-s', '--subject-dir', required=True)
-args = parse.parse_args()
-subject_directory = Path(args.subject_dir)
+# parse = argparse.ArgumentParser('Compute TFR')
+# parse.add_argument('-s', '--subject-dir', required=True)
+# args = parse.parse_args()
+# subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
@@ -163,10 +163,11 @@ tmax = 4
 times = eeg_epochs.copy().crop(tmin, tmax).times
 y = eeg_epochs.events[:, -1]
 
-X = np.array([stc.copy().crop(tmin, tmax).lh_data for stc in meg_epochs_stc])
+X = np.array([stc.copy().crop(tmin, tmax).data for stc in meg_epochs_stc])
 groups = np.array(groups)
 
 print(f'{X.shape=}, {y.shape=}, {groups.shape=}')
+
 
 # %%
 
@@ -182,6 +183,30 @@ scoring = make_scorer(accuracy_score, greater_is_better=True)
 time_decod = SlidingEstimator(
     clf, n_jobs=n_jobs, scoring=scoring, verbose=True)
 
+# %%
+# The fitting needs not be cross validated because the weights are based on
+# the training sets
+time_decod.fit(X, y)
+
+# %%
+
+# Retrieve patterns after inversing the z-score normalization step:
+patterns = get_coef(time_decod, "patterns_", inverse_transform=True)
+
+stc = meg_epochs_stc[0]  # for convenience, lookup parameters from first stc
+vertices = np.concat((stc.lh_vertno, stc.rh_vertno))
+stc_feat = mne.SourceEstimate(
+    np.abs(patterns),
+    vertices=vertices,
+    tmin=stc.tmin,
+    tstep=stc.tstep,
+    subject=subject.subject
+)
+stc_feat.save(data_directory.joinpath('patterns-meg'))
+
+# %%
+
+# %%
 cv = LeaveOneGroupOut()
 
 # Run cross-validated decoding analyses:
@@ -189,9 +214,9 @@ cv = LeaveOneGroupOut()
 scores = cross_val_multiscore(
     time_decod, X, y, groups=groups, cv=cv, n_jobs=n_jobs)
 
-save(scores, data_directory.joinpath('trained-scores.dump'))
+save(scores, data_directory.joinpath('trained-scores-.dump'))
 
-exit(0)
+# exit(0)
 
 # %%
 
