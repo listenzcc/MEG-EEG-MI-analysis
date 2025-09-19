@@ -45,10 +45,10 @@ from util.io.file import load, save
 # %%
 subject_directory = Path("./rawdata/S07_20231220")
 
-parse = argparse.ArgumentParser('Compute TFR')
-parse.add_argument('-s', '--subject-dir', required=True)
-args = parse.parse_args()
-subject_directory = Path(args.subject_dir)
+# parse = argparse.ArgumentParser('Compute TFR')
+# parse.add_argument('-s', '--subject-dir', required=True)
+# args = parse.parse_args()
+# subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
@@ -72,9 +72,7 @@ print(f'{X.shape=}, {y.shape=}, {times.shape=}, {groups.shape=}')
 # Pending
 clf = make_pipeline(
     StandardScaler(),
-    # LinearModel(LogisticRegression())
-    CSP(),
-    LogisticRegression()
+    LinearModel(LogisticRegression())
 )
 
 scoring = make_scorer(accuracy_score, greater_is_better=True)

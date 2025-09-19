@@ -2,7 +2,7 @@
 
 # script=0.read.evoked.py
 # script=7.tfr-in-source-level.py
-script=mvpa.source.1.train.test.py
+script=mvpa.source.1.dev.py
 
 
 python $script -s ./rawdata/S01_20220119 &
