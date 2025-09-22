@@ -20,9 +20,34 @@ Functions:
 # Requirements and constants
 from util.easy_import import *
 from util.io.file import load
+from util.subject_fsaverage import SubjectFsaverage
 
 # %%
 data_directory = Path(f'./data/fsaverage')
+
+# %%
+subject = SubjectFsaverage()
+p = data_directory.joinpath('S07_20231220/patterns-meg-0')
+stc = mne.read_source_estimate(p)
+
+data_stack = []
+for i in range(5):
+    p = data_directory.joinpath(f'S07_20231220/patterns-meg-{i}')
+    _stc = mne.read_source_estimate(p)
+    data_stack.append(_stc.data)
+
+data = np.mean(data_stack[:4], axis=0)
+
+stc.data = data
+stc.subject = subject.subject
+stc.tmin = -1
+stc.tmax = 4
+stc.tstep = (stc.tmax - stc.tmin) / (stc.data.shape[1] - 1)
+brain = stc.plot(views='lateral', hemi='both',
+                 subjects_dir=subject.subjects_dir, time_viewer=True)
+
+input("Press Enter to continue...")
+exit(0)
 
 # %% ---- 2025-09-19 ------------------------
 # Function and class

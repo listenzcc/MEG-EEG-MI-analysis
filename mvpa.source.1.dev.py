@@ -32,12 +32,12 @@ from util.subject_fsaverage import SubjectFsaverage
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # %%
-subject_directory = Path("./rawdata/S07_20231220")
+# subject_directory = Path("./rawdata/S07_20231220")
 
-# parse = argparse.ArgumentParser('Compute TFR')
-# parse.add_argument('-s', '--subject-dir', required=True)
-# args = parse.parse_args()
-# subject_directory = Path(args.subject_dir)
+parse = argparse.ArgumentParser('Compute TFR')
+parse.add_argument('-s', '--subject-dir', required=True)
+args = parse.parse_args()
+subject_directory = Path(args.subject_dir)
 
 subject_name = subject_directory.name
 
@@ -189,20 +189,24 @@ time_decod = SlidingEstimator(
 time_decod.fit(X, y)
 
 # %%
-
 # Retrieve patterns after inversing the z-score normalization step:
 patterns = get_coef(time_decod, "patterns_", inverse_transform=True)
 
 stc = meg_epochs_stc[0]  # for convenience, lookup parameters from first stc
-vertices = np.concat((stc.lh_vertno, stc.rh_vertno))
-stc_feat = mne.SourceEstimate(
-    np.abs(patterns),
-    vertices=vertices,
-    tmin=stc.tmin,
-    tstep=stc.tstep,
-    subject=subject.subject
-)
-stc_feat.save(data_directory.joinpath('patterns-meg'))
+vertices = [stc.lh_vertno, stc.rh_vertno]
+for i in range(5):
+    stc_feat = mne.SourceEstimate(
+        np.abs(patterns[:, i]).squeeze(),
+        vertices=vertices,
+        tmin=stc.tmin,
+        tstep=stc.tstep,
+        subject=subject.subject
+    )
+    stc_feat.save(data_directory.joinpath(f'patterns-meg-{i}'), overwrite=True)
+
+exit(0)
+
+# %%
 
 # %%
 
@@ -214,20 +218,19 @@ cv = LeaveOneGroupOut()
 scores = cross_val_multiscore(
     time_decod, X, y, groups=groups, cv=cv, n_jobs=n_jobs)
 
-save(scores, data_directory.joinpath('trained-scores-.dump'))
+save(scores, data_directory.joinpath('trained-scores.dump'))
 
 # exit(0)
 
 # %%
 
 # Plot average decoding scores of 5 splits
-fig, ax = plt.subplots(1)
-ax.plot(times, scores.mean(0), label="score")
-ax.axhline(0.2, color="k", linestyle="--", label="chance")
-ax.axvline(0, color="k")
-plt.legend()
+# fig, ax = plt.subplots(1)
+# ax.plot(times, scores.mean(0), label="score")
+# ax.axhline(0.2, color="k", linestyle="--", label="chance")
+# ax.axvline(0, color="k")
+# plt.legend()
 
-exit(0)
 
 # %%
 
