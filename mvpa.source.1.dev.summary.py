@@ -25,23 +25,32 @@ from util.subject_fsaverage import SubjectFsaverage
 # %%
 data_directory = Path(f'./data/fsaverage')
 
-# %%
+# stc setup
 subject = SubjectFsaverage()
-p = data_directory.joinpath('S07_20231220/patterns-meg-0')
+tmin, tmax = -1, 4
+
+# %%
+subject_directories = sorted(list(data_directory.glob('S07*')))
+
+# %%
+
+p = subject_directories[0].joinpath('patterns-meg-0')
 stc = mne.read_source_estimate(p)
 
 data_stack = []
-for i in range(5):
-    p = data_directory.joinpath(f'S07_20231220/patterns-meg-{i}')
-    _stc = mne.read_source_estimate(p)
-    data_stack.append(_stc.data)
+for subject_directory in tqdm(subject_directories, 'Reading subjects'):
+    for i in range(4):
+        # p = data_directory.joinpath(f'S07_20231220/patterns-meg-{i}')
+        p = subject_directory.joinpath(f'patterns-meg-{i}')
+        _stc = mne.read_source_estimate(p)
+        data_stack.append(_stc.data)
 
-data = np.mean(data_stack[:4], axis=0)
+data = np.mean(data_stack, axis=0)
 
 stc.data = data
 stc.subject = subject.subject
-stc.tmin = -1
-stc.tmax = 4
+stc.tmin = tmin
+stc.tmax = tmax
 stc.tstep = (stc.tmax - stc.tmin) / (stc.data.shape[1] - 1)
 brain = stc.plot(views='lateral', hemi='both',
                  subjects_dir=subject.subjects_dir, time_viewer=True)

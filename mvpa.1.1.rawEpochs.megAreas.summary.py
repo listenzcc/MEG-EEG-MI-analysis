@@ -18,8 +18,11 @@ Functions:
 
 # %% ---- 2025-09-10 ------------------------
 # Requirements and constants
+import matplotlib as mpl
+from collections import defaultdict
 from util.easy_import import *
 from util.io.file import load
+from util.read_example_raw import md
 
 plt.style.use('ggplot')
 
@@ -27,6 +30,16 @@ meg_ch_name_dct = json.load(open('./data/meg_ch_name_dct.json'))
 
 data_directory = Path('./data/MVPA.megAreas.withCoef')
 
+# %%
+epochs_kwargs = {'tmin': -1, 'tmax': 4-1e-3, 'decim': 6*5}
+md.generate_epochs(**epochs_kwargs)
+
+md.meg_epochs.load_data()
+# md.meg_epochs.pick('mag')
+
+print(md.eeg_epochs)
+print(md.meg_epochs)
+print(md.meg_epochs.times)
 
 # %% ---- 2025-09-10 ------------------------
 # Function and class
@@ -82,9 +95,58 @@ plt.show()
 
 # %%
 
-# %% ---- 2025-09-10 ------------------------
-# Pending
+mpl.use('pdf')
+for ch_mark in sorted(list(meg_ch_name_dct.keys())) + ['ALL']:
+    with PdfPages(data_directory.joinpath(f'mvpa_megAreas_topomap_{ch_mark}.pdf')) as pdf:
+        ch_mark = ch_mark.upper()
+
+        files = list(data_directory.rglob(
+            f'decoding-meg-chmark-{ch_mark}.dump'))
+        objs = [load(file) for file in files]
+
+        values = defaultdict(list)
+        for obj in tqdm(objs):
+            # shape is (n_ch, n_events, n_times)
+            coef = obj['coef']
+            # print(obj['coef'].shape)
+            for ch_name, value in zip(obj['ch_names'], coef):
+                values[ch_name].append(np.abs(value))
+
+        for k, v in values.items():
+            values[k] = np.mean(v, axis=0)[np.newaxis, :, :]
+
+        for k, v in values.items():
+            # v.shape is (1, n_events, n_times)
+            print(k, v.shape)
+
+        # Make data as shape (n_epochs, n_channels, n_times)
+        data = np.concatenate(list(values.values()), axis=0).transpose(1, 0, 2)
+        print(f'{data.shape=}')
+        events = [[10000*(i+1), 0, i+1] for i in range(data.shape[0])]
+        print(events)
+        epochs = md.meg_epochs.copy()
+        epochs.pick(list(values.keys()))
+
+        ea = mne.EpochsArray(data, epochs.info,
+                             tmin=epochs.tmin,
+                             events=events,
+                             event_id=epochs.event_id)
+        ea.crop(tmin=0, tmax=4)
+        print(ea)
+
+        # Plot
+        _times = [0, 0.5, 1, 2, 3]
+        topomap_args = {
+            'extrapolate': 'local'  # 'box', 'local', 'head'
+        }
+        for evt in ['1', '2', '3', '4', '5']:
+            evoked = ea[evt].average()
+            fig = evoked.plot_joint(
+                title=f'MEG @evt: {evt}', topomap_args=topomap_args)
+            pdf.savefig(fig)
 
 
 # %% ---- 2025-09-10 ------------------------
 # Pending
+
+# %%

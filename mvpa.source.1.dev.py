@@ -113,6 +113,25 @@ evts = ['1', '2', '3', '4', '5']
 mds, event_id = read_data()
 eeg_epochs, meg_epochs, groups = concat_epochs(mds)
 
+# Collect raw data and save them
+X = meg_epochs.copy().get_data()
+y = eeg_epochs.events[:, -1]
+groups = np.array(groups)
+ch_names = meg_epochs.ch_names
+times = meg_epochs.times
+
+raw_data = {
+    'X': X,
+    'y': y,
+    'times': times,
+    'groups': groups,
+    'ch_names': ch_names
+}
+save(raw_data, data_directory.joinpath('raw-X-y-times-groups-ch_names.dump'))
+
+exit(0)
+
+
 # %%
 # Prepare inverse computation
 stuff_estimate_snr = load(data_directory.joinpath('stuff-estimate-snr.dump'))
@@ -161,10 +180,10 @@ print(len(meg_epochs_stc), meg_epochs_stc[0])
 tmin = -1
 tmax = 4
 times = eeg_epochs.copy().crop(tmin, tmax).times
-y = eeg_epochs.events[:, -1]
 
+
+# Collect source data and use them
 X = np.array([stc.copy().crop(tmin, tmax).data for stc in meg_epochs_stc])
-groups = np.array(groups)
 
 print(f'{X.shape=}, {y.shape=}, {groups.shape=}')
 

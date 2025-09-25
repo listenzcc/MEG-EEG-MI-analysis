@@ -62,7 +62,7 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.megAreas.withCoef/{subject_name}')
+data_directory = Path(f'./data/MVPA.megAreas.CSP.withCoef/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -208,6 +208,7 @@ for ch_mark, ch_names in meg_ch_name_dct.items():
         # Over time decoding
         clf = make_pipeline(
             StandardScaler(),
+            CSP(),
             LinearModel(LogisticRegression(solver="liblinear"))
         )
 
@@ -234,6 +235,7 @@ for ch_mark, ch_names in meg_ch_name_dct.items():
         # Patterns in sensor space
         clf = make_pipeline(
             StandardScaler(),
+            CSP(),
             LinearModel(LogisticRegression(solver="liblinear"))
         )
 
