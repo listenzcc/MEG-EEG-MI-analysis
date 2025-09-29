@@ -2,8 +2,8 @@
 
 # script=0.read.evoked.py
 # script=7.tfr-in-source-level.py
-script=mvpa.source.1.dev.py
 # script=mvpa.1.1.rawEpochs.megAreas.py
+script=0.read.X.y.groups.py
 
 
 python $script -s ./rawdata/S01_20220119 &
