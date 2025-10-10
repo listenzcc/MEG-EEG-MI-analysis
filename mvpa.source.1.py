@@ -19,7 +19,6 @@ Functions:
 # %% ---- 2025-09-16 ------------------------
 # Requirements and constants
 from util.io.file import load, save
-from util.bands import Bands
 from util.easy_import import *
 from util.subject_fsaverage import SubjectFsaverage
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
@@ -45,7 +44,7 @@ def read_data():
     Read data (.ds directories) and convert raw to epochs.
     """
     # Setup options
-    epochs_kwargs = {"tmin": -3, "tmax": 5, "decim": 6}
+    epochs_kwargs = {"tmin": -2, "tmax": 5, "decim": 12}
     use_latest_ds_directories = 8  # 8
 
     # Read from file
@@ -75,6 +74,7 @@ def concat_epochs(mds: list[MyData]):
     groups = []
     for i, e in enumerate(mds):
         groups.extend([i for _ in range(len(e.meg_epochs))])
+    groups = np.array(groups)
 
     eeg_epochs = mne.concatenate_epochs(
         [md.eeg_epochs for md in tqdm(mds, "Concat EEG Epochs")]
@@ -150,31 +150,37 @@ print(len(meg_epochs_stc), meg_epochs_stc[0])
 
 
 # %% ---- 2025-09-16 ------------------------
-# Load X, y
-tmin = 0
+# Load X, y and save them.
+tmin = -1
 tmax = 4
-times = eeg_epochs.copy().crop(tmin, tmax).times
-y = eeg_epochs.events[:, -1]
-groups = np.array(groups)
 
-data = []
-for label in tqdm(labels_parc_df['label'], 'Read labels'):
-    # d.shape = (n_epochs, n_vertices, n_times)
-    d = np.array([e.in_label(label).crop(
-        tmin, tmax).data for e in eeg_epochs_stc])
-    data.append(np.mean(d, axis=1))
-X = np.array(data).transpose((1, 0, 2))
+for mode, epochs, stc in [('meg', meg_epochs, meg_epochs_stc),
+                          ('eeg', eeg_epochs, eeg_epochs_stc)]:
+    epochs.crop(tmin, tmax)
 
-print(f'{X.shape=}, {times.shape=}, {y.shape=}, {groups.shape=}')
+    [e.crop(tmin, tmax) for e in stc]
 
-# %%
-all_data = {
-    'X': X,
-    'y': y,
-    'times': times,
-    'groups': groups,
-}
-save(all_data, data_directory.joinpath('X-y-times-groups.dump'))
+    times = epochs.times
+    y = epochs.events[:, -1]
+
+    data = []
+    for label in tqdm(labels_parc_df['label'], 'Read labels'):
+        # d shape is (n_epochs, n_vertices, n_times)
+        d = np.array([e.in_label(label).data for e in stc])
+        data.append(np.mean(d, axis=1))
+    X = np.array(data).transpose((1, 0, 2))
+
+    print(f'{X.shape=}, {times.shape=}, {y.shape=}, {groups.shape=}')
+
+    # Save the data
+    saving = {
+        'X': X,
+        'y': y,
+        'times': times,
+        'groups': groups,
+    }
+    save(saving, data_directory.joinpath(
+        f'{mode}-source-X-y-times-groups.dump'))
 
 
 # %% ---- 2025-09-16 ------------------------

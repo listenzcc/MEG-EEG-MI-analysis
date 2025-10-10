@@ -4,6 +4,7 @@ from sklearn.metrics import accuracy_score, classification_report
 from util.easy_import import *
 from util.io.file import load
 
+plt.style.use('ggplot')
 
 # %%
 # Summary the CSP
@@ -19,6 +20,7 @@ data_directories = [
     Path('./data/MVPA.FBCSP.vote.meg.fine'),
     Path('./data/MVPA.FBCSP.vote.meg')
 ]
+
 
 for data_directory in data_directories:
     name = data_directory.name
@@ -63,7 +65,9 @@ for data_directory in data_directories:
             acc = accuracy_score(y_true=y_true, y_pred=y_pred)
             data.append({'subject': subject, 'acc': acc, 'freqIdx': i})
 
+        # Hard vote
         y_pred = [vote(e)[-1][0] for e in np.array(y_preds).T]
+        # Soft vote
         y_pred_2 = np.argmax(np.prod(np.array(y_probas), axis=0), axis=1) + 1
 
         acc = accuracy_score(y_true=y_true, y_pred=y_pred)
@@ -87,26 +91,38 @@ for data_directory in data_directories:
     yy_pred_2 = np.vstack(yy_pred_2).ravel()
 
     print(metrics.classification_report(y_true=yy_true, y_pred=yy_pred))
-    print(metrics.confusion_matrix(y_true=yy_true, y_pred=yy_pred))
-
     print(metrics.classification_report(y_true=yy_true, y_pred=yy_pred_2))
-    print(metrics.confusion_matrix(y_true=yy_true, y_pred=yy_pred_2))
+    confusion_matrix = metrics.confusion_matrix(
+        y_true=yy_true, y_pred=yy_pred_2, normalize='true')
+    print(f'{confusion_matrix=}')
 
     # --------------------------------------------------------------------------------
     # Plot
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
     acc = data.query('freqIdx=="vote"')['acc2'].mean()
     x = [np.mean(f) for f in d['freqs']]
-    plt.style.use('ggplot')
-    plt.plot(x, group['acc'].mean().to_list()[:-1])
-    plt.xlabel('Freq (Hz)')
-    plt.ylabel('Acc')
-    plt.title(f'{name} | vote {acc=:0.2f}')
-    plt.hlines(y=0.2, xmin=np.min(x), xmax=np.max(
-        x), colors='gray', linestyles='-.')
-    plt.hlines(y=acc, xmin=np.min(x), xmax=np.max(
-        x), colors='blue')
-    plt.ylim([0.15, 0.5])
-    plt.tight_layout()
+    ax = axes[0]
+    ax.plot(x, group['acc'].mean().to_list()[:-1])
+    ax.hlines(y=0.2, xmin=np.min(x), xmax=np.max(x),
+              colors='gray', linestyles='-.')
+    ax.hlines(y=acc, xmin=np.min(x), xmax=np.max(x),
+              colors='blue')
+    ax.set_xlabel('Freq (Hz)')
+    ax.set_ylabel('Acc')
+    ax.set_title(f'{name} | vote {acc=:0.3f}')
+    ax.set_ylim([0.15, 0.5])
+
+    import seaborn as sns
+    ax = axes[1]
+    ticklabels = ['1', '2', '3', '4', '5']
+    sns.heatmap(confusion_matrix, vmin=0.1, vmax=0.6, cbar=False, annot=True,
+                xticklabels=ticklabels, yticklabels=ticklabels, ax=ax)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Truth')
+    ax.set_title('Confusion matrix')
+
+    fig.tight_layout()
     plt.savefig(output_directory.joinpath(f'{name}.png'))
     plt.show()
 
