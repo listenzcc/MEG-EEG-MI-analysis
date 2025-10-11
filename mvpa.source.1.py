@@ -44,7 +44,7 @@ def read_data():
     Read data (.ds directories) and convert raw to epochs.
     """
     # Setup options
-    epochs_kwargs = {"tmin": -2, "tmax": 5, "decim": 12}
+    epochs_kwargs = {"tmin": -2, "tmax": 5, "decim": 6}
     use_latest_ds_directories = 8  # 8
 
     # Read from file
