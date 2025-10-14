@@ -18,6 +18,8 @@ Functions:
 
 # %% ---- 2025-09-16 ------------------------
 # Requirements and constants
+from mne.beamformer import apply_dics_tfr_epochs, make_dics
+from mne.time_frequency import csd_tfr
 from util.io.file import load, save
 from util.easy_import import *
 from util.subject_fsaverage import SubjectFsaverage
@@ -135,27 +137,92 @@ kwargs = dict(
     method="dSPM"  # use dSPM method (could also be MNE or sLORETA)
 )
 
-# Compute EEG inverse
-print('Computing EEG inverse')
-eeg_epochs.set_eeg_reference(projection=True)
-eeg_epochs_stc = mne.minimum_norm.apply_inverse_epochs(
-    eeg_epochs, inverse_operator['eeg'], **kwargs)
-print(len(eeg_epochs_stc), eeg_epochs_stc[0])
+# # Compute EEG inverse
+# print('Computing EEG inverse')
+# eeg_epochs.set_eeg_reference(projection=True)
+# eeg_epochs_stc = mne.minimum_norm.apply_inverse_epochs(
+#     eeg_epochs, inverse_operator['eeg'], **kwargs)
+# print(len(eeg_epochs_stc), eeg_epochs_stc[0])
 
-# Compute MEG inverse
-print('Computing MEG inverse')
-meg_epochs_stc = mne.minimum_norm.apply_inverse_epochs(
-    meg_epochs, inverse_operator['meg'], **kwargs)
-print(len(meg_epochs_stc), meg_epochs_stc[0])
+# # Compute MEG inverse
+# print('Computing MEG inverse')
+# meg_epochs_stc = mne.minimum_norm.apply_inverse_epochs(
+#     meg_epochs, inverse_operator['meg'], **kwargs)
+# print(len(meg_epochs_stc), meg_epochs_stc[0])
 
 
 # %% ---- 2025-09-16 ------------------------
 # Load X, y and save them.
 tmin = -1
 tmax = 4
+freqs = [(8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)]
+freqs = [e for e in range(8, 32, 4)]
+print(freqs)
 
-for mode, epochs, stc in [('meg', meg_epochs, meg_epochs_stc),
-                          ('eeg', eeg_epochs, eeg_epochs_stc)]:
+# %%
+
+
+for mode, epochs in [('meg', meg_epochs),
+                     ('eeg', eeg_epochs)]:
+    # Compute tfr
+    epochs_tfr = epochs.compute_tfr(
+        'morlet', freqs, n_cycles=freqs, return_itc=False, output="complex", average=False, n_jobs=n_jobs)
+    print(epochs_tfr)
+
+    # Compute the Cross-Spectral Density (CSD) matrix for the sensor-level TFRs.
+    # We are interested in increases in power relative to the baseline period, so
+    # we will make a separate CSD for just that period as well.
+    csd = csd_tfr(epochs_tfr, tmin=tmin, tmax=tmax)
+    baseline_csd = csd_tfr(epochs_tfr, tmin=tmin, tmax=0)
+
+    # compute scalar DICS beamfomer
+    fwd = stuff_estimate_snr[f'fwd_{mode}']
+    filters = make_dics(
+        epochs.info,
+        fwd,
+        csd,
+        noise_csd=baseline_csd,
+        pick_ori="max-power",
+        reduce_rank=True,
+        real_filter=True,
+    )
+
+    # project the TFR for each epoch to source space
+    epochs_stcs_generator = apply_dics_tfr_epochs(
+        epochs_tfr, filters, return_generator=True)
+
+    # average across frequencies and epochs
+    data = []
+    # Walk through samples
+    for stcs in tqdm(epochs_stcs_generator, 'Lvl1', total=len(epochs)):
+        d1 = []
+        # Walk through freqs
+        for stc in tqdm(stcs, 'Lvl2'):
+            stc.crop(tmin, tmax)
+            d2 = []
+            for label in labels_parc_df['label']:
+                # d shape is (n_vertex, n_times)
+                d = stc.in_label(label).data
+                # Average across vertex
+                d2.append(np.mean((d * np.conj(d)).real, axis=0))
+            d1.append(d2)
+        data.append(d1)
+
+    # data shape is (n_samples, n_freqs, n_vertex, n_times)
+    data = np.array(data)
+    print(data.shape)
+    saving = {
+        'X': data,
+        'freqs': freqs
+    }
+    save(saving, data_directory.joinpath(f'{mode}-tfr-source-X-freqs.dump'))
+    continue
+
+    # Compute stc
+    stc = mne.minimum_norm.apply_inverse_epochs(
+        epochs, inverse_operator[mode], **kwargs)
+
+    # Save stc
     epochs.crop(tmin, tmax)
 
     [e.crop(tmin, tmax) for e in stc]
@@ -185,7 +252,6 @@ for mode, epochs, stc in [('meg', meg_epochs, meg_epochs_stc),
 
 # %% ---- 2025-09-16 ------------------------
 # Train & test
-
 
 # %% ---- 2025-09-16 ------------------------
 # Pending
