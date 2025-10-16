@@ -46,7 +46,7 @@ def read_data():
     Read data (.ds directories) and convert raw to epochs.
     """
     # Setup options
-    epochs_kwargs = {"tmin": -2, "tmax": 5, "decim": 6}
+    epochs_kwargs = {"tmin": -2, "tmax": 5, "decim": 12}
     use_latest_ds_directories = 8  # 8
 
     # Read from file
@@ -157,6 +157,7 @@ tmin = -1
 tmax = 4
 freqs = [(8, 12), (12, 16), (16, 20), (20, 24), (24, 28), (28, 32)]
 freqs = [e for e in range(8, 32, 4)]
+freqs = [e for e in range(2, 45, 4)]
 print(freqs)
 
 # %%
@@ -210,7 +211,8 @@ for mode, epochs in [('meg', meg_epochs),
 
     # data shape is (n_samples, n_freqs, n_vertex, n_times)
     data = np.array(data)
-    print(data.shape)
+    print(data.shape, data.nbytes)
+
     saving = {
         'X': data,
         'freqs': freqs
@@ -252,6 +254,7 @@ for mode, epochs in [('meg', meg_epochs),
 
 # %% ---- 2025-09-16 ------------------------
 # Train & test
+
 
 # %% ---- 2025-09-16 ------------------------
 # Pending
