@@ -92,6 +92,7 @@ def concat_epochs(mds: list[MyData]):
 # Load the labels
 subject = SubjectFsaverage()
 parc = "aparc_sub"
+parc = 'aparc.a2009s'
 labels_parc = mne.read_labels_from_annot(
     subject.subject, parc=parc, subjects_dir=subject.subjects_dir
 )
@@ -99,7 +100,7 @@ labels_parc_df = pd.DataFrame(
     [(e.name, e) for e in labels_parc], columns=["name", "label"]
 )
 labels_parc_df = labels_parc_df[labels_parc_df['name'].map(
-    lambda e: not e.startswith('unknown'))]
+    lambda e: not e.lower().startswith('unknown'))]
 labels_parc_df
 
 # %%
@@ -217,7 +218,8 @@ for mode, epochs in [('meg', meg_epochs),
         'X': data,
         'freqs': freqs
     }
-    save(saving, data_directory.joinpath(f'{mode}-tfr-source-X-freqs.dump'))
+    save(saving, data_directory.joinpath(
+        f'{mode}-tfr-source-2009s-X-freqs.dump'))
     continue
 
     # Compute stc
