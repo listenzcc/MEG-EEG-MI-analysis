@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script=erd.1st.compute.py
-mode=eeg
+mode=meg
 
 python $script -s S01_20220119 -m $mode &
 python $script -s S02_20220315 -m $mode &

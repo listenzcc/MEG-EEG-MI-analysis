@@ -26,6 +26,7 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 from util.easy_import import *
 
 from mne.stats import permutation_cluster_1samp_test as pcluster_test
+from mne.stats import permutation_t_test
 
 # %%
 # Use the arguments
@@ -53,7 +54,7 @@ except Exception as err:
 
 profile.merge_with(dict(
     subject_dir=Path('rawdata', profile.subject_name),
-    output_dir=Path('data.v2', 'erd', profile.subject_name),
+    output_dir=Path('data.v2', 'erd.permutation1000', profile.subject_name),
     use_latest_ds_dirs=8,  # 2 or 8, lower value means loading fewer data
     epochs_kwargs={'tmin': -2, 'tmax': 5, 'decim': 12},  # sfreq is 1200 Hz
 ))
@@ -141,9 +142,10 @@ tmin, tmax = -1, 4  # time crops AFTER tfr
 baseline = (-1, 0)  # baseline interval (in s)
 cnorm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)  # min, center & max ERDS
 
+n_permutations = 1000
 # kwargs for cluster test
 kwargs = dict(
-    n_permutations=100, step_down_p=0.05, seed=1, buffer_size=None, out_type="mask"
+    n_permutations=n_permutations, step_down_p=0.05, seed=1, buffer_size=None, out_type="mask"
 )
 
 # %%
@@ -178,10 +180,17 @@ for event in tqdm(event_ids, 'TFR, test and visualization'):
         t1, c1, p1, h1 = pcluster_test(tfr_ev.data[:, ch], tail=1, **kwargs)
         # negative clusters
         t2, c2, p2, h2 = pcluster_test(tfr_ev.data[:, ch], tail=-1, **kwargs)
+        d = tfr_ev.data[:, ch].copy()
+        shape = d.shape  # (n_freqs, n_times)
+        d = d.reshape(d.shape[0], -1)
+        t, p, h = permutation_t_test(d, n_permutations=n_permutations)
 
         saving = dict(
             t1=t1,
-            t2=t2
+            t2=t2,
+            t=t,
+            p=p,
+            shape=shape
         )
         save(saving, profile.output_dir.joinpath(
             f'{profile.mode}-{event}-t1-t2.dump'))
