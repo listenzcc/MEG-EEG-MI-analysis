@@ -1,4 +1,5 @@
 *.ipynb
+figures
 log
 data
 data.v2
