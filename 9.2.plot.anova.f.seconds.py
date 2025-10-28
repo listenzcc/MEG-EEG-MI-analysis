@@ -113,6 +113,7 @@ while True:
                 transparent=True,
                 background='white',
                 colorbar=False,
+                # colorbar=True,
                 clim=dict(kind="value", lims=(10, 20, 30)),
                 title=f'F {inp}',
                 size=(1600, 800),
@@ -147,6 +148,12 @@ while True:
             #         # brain.add_label("BA4p", hemi=hemi,
             #         #                 color="blue", borders=True)
             # break
+
+            # Draw once and wait.
+            # input('>>')
+            # break
+
+            # Save images for every loop.
             brain.save_image(f'./figures/anova-f-{inp}-{t=}.png')
             brain.close()
 
