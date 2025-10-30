@@ -59,7 +59,15 @@ evts = ['1', '2', '3', '4', '5']
 mode = 'meg'
 
 plt.style.use('ggplot')
-fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+fig, axes = plt.subplots(2, 2, figsize=(12, 10), gridspec_kw={
+                         "width_ratios": [4, 6]})
+
+
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=16, va='bottom')
+    return
+
 
 for i, mode in enumerate(['meg', 'eeg']):
     v = list(data[data['mode'] == mode]['scores'].values)
@@ -69,17 +77,20 @@ for i, mode in enumerate(['meg', 'eeg']):
 
     # Plot the diagonal (it's exactly the same as the time-by-time decoding above)
     ax = axes[i, 0]
-    ax.plot(times, np.diag(scores_mean), label="score")
+    add_top_left_notion(ax, 'a' if i == 0 else 'c')
+    ax.plot(times, np.diag(scores_mean), label="score(avg)")
     # Draw shadow for standard deviation
     ax.fill_between(times, np.diag(scores_mean - scores_std*0.5),
-                    np.diag(scores_mean+scores_std*0.5), alpha=0.2, label='std')
+                    # , label='std')
+                    np.diag(scores_mean+scores_std*0.5), alpha=0.2)
     ax.plot(times, np.diag(scores_median), label="score(median)")
-    ax.axhline(1/len(evts), color="gray", linestyle="--", label="chance")
+    ax.axhline(1/len(evts), color="gray", linestyle="--")  # , label="chance")
     ax.set_xlabel("Times")
     ax.set_ylabel("AccScore")
-    ax.legend(loc='upper right')
+    ax.legend(loc='lower right')
     ax.axvline(0.0, color="gray", linestyle="-")
-    ax.set_title(f"Decoding over time (mode: {mode})")
+    ax.set_title(f"Scores over time ({mode.upper()})")
+    ax.set_ylim([0.15, 0.4])
 
     # Plot the temporal generalization matrix
 
@@ -89,6 +100,7 @@ for i, mode in enumerate(['meg', 'eeg']):
     # norm = TwoSlopeNorm(vmin=0.0, vcenter=0.2, vmax=0.5)
 
     ax = axes[i, 1]
+    add_top_left_notion(ax, 'b' if i == 0 else 'd')
     im = ax.imshow(
         scores_mean,
         interpolation="lanczos",
@@ -101,11 +113,12 @@ for i, mode in enumerate(['meg', 'eeg']):
     )
     ax.set_xlabel("Testing Time (s)")
     ax.set_ylabel("Training Time (s)")
-    ax.set_title(f"Temporal generalization (mode: {mode})")
+    ax.set_title(f"Temporal generalization ({mode.upper()})")
     ax.axvline(0, color="gray")
     ax.axhline(0, color="gray")
-    cbar = plt.colorbar(im, ax=ax, shrink=0.5)
-    cbar.set_label("Accuracy Score")
+    cbar = plt.colorbar(im, ax=ax, shrink=0.5)  # , fraction=0.6, aspect=20)
+    # cbar.ax.set_position([0.85, 0.15, 0.02, 0.7])  # [left, bottom, width, height]
+    # cbar.set_label("Accuracy Score")
 
 fig.tight_layout()
 

@@ -127,12 +127,21 @@ print(sum_freq)
 # Pending
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
+
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=16, va='bottom')
+    return
+
+
 ax = axes[0]
+add_top_left_notion(ax, 'a')
 sns.barplot(df_vote, x='chMark', y='acc', hue='chHemi', ax=ax)
 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 ax.set_title('Voted acc using different MEG channels')
 
 ax = axes[1]
+add_top_left_notion(ax, 'b')
 sns.lineplot(sum_freq, x='freq', y='acc', hue='chMark', style='chHemi', ax=ax)
 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 ax.set_title('Acc of single freqs using different MEG channels')

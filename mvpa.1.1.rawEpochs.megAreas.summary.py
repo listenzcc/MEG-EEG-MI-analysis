@@ -56,6 +56,13 @@ evts = [1, 2, 3, 4, 5]
 # %%
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
+
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=16, va='bottom')
+    return
+
+
 for ch_mark in sorted(list(meg_ch_name_dct.keys())) + ['ALL']:
     files = list(data_directory.rglob(f'decoding-meg-chmark-{ch_mark}.dump'))
     objs = [load(file) for file in files]
@@ -77,12 +84,14 @@ for ch_mark in sorted(list(meg_ch_name_dct.keys())) + ['ALL']:
     ax.plot(times, np.diag(scores_mean), label=f"score({ch_mark})")
 
 for i, ax in enumerate(axes):
-    ax.axhline(1/len(evts), color="gray", linestyle="--", label="chance")
+    add_top_left_notion(ax, 'abc'[i])
+
+    ax.axhline(1/len(evts), color="gray", linestyle="--")  # , label="chance")
     ax.set_xlabel("Times")
     ax.set_ylabel("AccScore")
     ax.legend(loc='lower right')  # , bbox_to_anchor=(1, 1))
     ax.axvline(0.0, color="gray", linestyle="-")
-    ax.set_title(f"Decoding over time (mode: {mode})")
+    ax.set_title(f"Acc over time ({['Both', 'Left', 'Right'][i]} hemi)")
     if i == 0:
         ax.set_ylim([0.15, 0.4])
     else:
