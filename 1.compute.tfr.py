@@ -84,7 +84,7 @@ def compute_tfr(epochs: mne.Epochs):
         n_jobs=20,
         decim=2
     )
-    crop_options = dict(tmin=-2, tmax=epochs.tmax)
+    crop_options = dict(tmin=-1, tmax=epochs.tmax)
     baseline_options = dict(mode='ratio')
 
     # Load data and compute
@@ -92,7 +92,7 @@ def compute_tfr(epochs: mne.Epochs):
     tfr: mne.time_frequency.EpochsTFR = epochs.compute_tfr(**tfr_options)
 
     # Crop and apply baseline
-    tfr.crop(**crop_options).apply_baseline((None, 0), **baseline_options)
+    # tfr.crop(**crop_options).apply_baseline((None, 0), **baseline_options)
 
     return tfr
 
@@ -111,7 +111,9 @@ def tfr_apply_baseline(tfr: mne.time_frequency.EpochsTFR, mode: str = 'ratio'):
     - subtracting the mean of baseline values and dividing by the standard deviation of baseline values (‘zscore’)
     - dividing by the mean of baseline values, taking the log, and dividing by the standard deviation of log baseline values (‘zlogratio’)
     '''
-    tfr = tfr.copy()
+    crop_options = dict(tmin=-1, tmax=tfr.tmax)
+    tfr = tfr.copy().crop(**crop_options)
+
     tfr.apply_baseline((None, 0), mode=mode)
     return tfr
 
@@ -126,7 +128,8 @@ logger.info(f'Start with {subject_name}')
 for me, epochs in zip(['meg', 'eeg'], [meg_epochs, eeg_epochs]):
     logger.info(f'Compute tfr: {subject_name}, {me}, {epochs}')
     tfr = compute_tfr(epochs)
-    for evt, mode in itertools.product(evts, ['logratio', 'ratio', 'mean']):
+    # for evt, mode in itertools.product(evts, ['logratio', 'ratio', 'mean']):
+    for evt, mode in itertools.product(evts, ['logratio']):
         tfr_apply_baseline(tfr[evt], mode=mode).average().save(
             data_directory.joinpath(f'{me}-{mode}-{evt}-average-tfr.h5'), overwrite=True)
 logger.info(f'Done with {subject_name}')

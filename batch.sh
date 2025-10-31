@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# script=0.read.evoked.py
+script=1.compute.tfr.py
 # script=7.tfr-in-source-level.py
-script=mvpa.source.1.py
+# script=mvpa.source.1.py
 
 
 python $script -s ./rawdata/S01_20220119 &
