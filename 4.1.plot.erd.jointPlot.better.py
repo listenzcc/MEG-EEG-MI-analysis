@@ -126,12 +126,25 @@ def plot_erd_scatter(df, Opt, evts, band_name):
     return fig
 
 
-def plot_erd_topomap(df, Opt, evts, band_name):
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=12, va='bottom')
+    return
+
+
+def plot_erd_topomap(df, Opt):
+    evts = sorted(df['evt'].unique())
+    band_names = sorted(df['freq'].unique())
+
+    assert len(band_names) == 2, f'Incorrect {band_names=}'
+
     cols = len(evts)
     fig, axes = plt.subplots(
-        1, cols+1,
-        figsize=(3*cols+1, 3),
-        gridspec_kw={"width_ratios": [10] * cols + [1]})
+        2, cols+1,
+        figsize=(3*cols, 6),
+        gridspec_kw={
+            "width_ratios": [10] * cols + [1]
+        })
 
     if Opt.mode == 'MEG':
         Opt.evoked.pick('mag')
@@ -139,47 +152,62 @@ def plot_erd_topomap(df, Opt, evts, band_name):
     event_names = [e.title()
                    for e in ['hand', 'wrist', 'elbow', 'shoulder',  'rest']]
 
-    for ax, evt in zip(axes, evts):
-        query = [f'evt=="{evt}"']  # , 'time<4.0', 'time>0.0']
-        _df = df.query(' & '.join(query))
+    # for ax, evt in zip(axes, evts):
+    for i_band, band_name in enumerate(band_names):
+        for i_evt, evt in enumerate(evts):
+            # , 'time<4.0', 'time>0.0']
+            query = [f'evt=="{evt}"', f'freq=="{band_name}"']
+            _df = df.query(' & '.join(query))
 
-        # Convert into dB
-        _averaged_df = 10*_df.groupby('channel', observed=True)['value'].mean()
+            # Convert into dB
+            _averaged_df = 10 * \
+                _df.groupby('channel', observed=True)['value'].mean()
 
-        mask = None
+            mask = None
 
-        if Opt.mode.lower() == 'eeg':
-            mask = np.array([e in ['C3', 'Cz', 'C4']
-                            for e in Opt.evoked.info.ch_names])
-            print(evt, _averaged_df['C3'], _averaged_df['FC3'])
+            if Opt.mode.lower() == 'eeg':
+                mask = np.array([e in ['C3', 'Cz', 'C4']
+                                for e in Opt.evoked.info.ch_names])
+                print(evt, _averaged_df['C3'], _averaged_df['FC3'])
 
-        if Opt.mode.lower() == 'meg':
-            mask = np.array([e in ['MLC42', 'MZC03', 'MRC42']
-                            for e in Opt.evoked.info.ch_names])
+            if Opt.mode.lower() == 'meg':
+                mask = np.array([e in ['MLC42', 'MZC03', 'MRC42']
+                                for e in Opt.evoked.info.ch_names])
 
-        # print(_averaged_df)
-        # print(Opt.evoked.info.ch_names)
-        _array = [_averaged_df[e] for e in Opt.evoked.info.ch_names]
+            # print(_averaged_df)
+            # print(Opt.evoked.info.ch_names)
+            _array = [_averaged_df[e] for e in Opt.evoked.info.ch_names]
 
-        im, cn = mne.viz.plot_topomap(_array, Opt.evoked.info, image_interp='cubic',
-                                      contours=[-3, -1, 0],
-                                      mask=mask,
-                                      mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
-                                                       linewidth=0, markersize=4),
-                                      #   sphere=(0, 0, 0, 0.1),
-                                      sphere=(
-                                          0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
-                                      extrapolate='local',
-                                      cnorm=Opt.norm, cmap=Opt.cmap, size=3, axes=ax, show=False)
+            ax = axes[i_band, i_evt]
 
-        ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
+            im, cn = mne.viz.plot_topomap(
+                _array, Opt.evoked.info, image_interp='cubic',
+                contours=[-3, -1, 0],
+                mask=mask,
+                mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
+                                 linewidth=0, markersize=4),
+                #   sphere=(0, 0, 0, 0.1),
+                sphere=(
+                    0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
+                extrapolate='local',
+                cnorm=Opt.norm, cmap=Opt.cmap, size=4, axes=ax, show=False)
 
-        ax.set_title(f'{event_names[int(evt)-1]}')
+            ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
 
-    fig.colorbar(im, cax=axes[cols]).ax.set_yscale('linear')
+            if i_evt == 0:
+                add_top_left_notion(ax, 'abcdefg'[i_band])
 
-    axes[cols].set_title('dB')
-    fig.suptitle(f'TFR topomap {Opt.mode.upper()} ({band_name.title()})')
+            ax.set_title(f'{event_names[int(evt)-1]}')
+
+        cax = axes[i_band, -1]
+        fig.colorbar(im, cax=cax).ax.set_yscale('linear')
+        cax.set_title('dB')
+
+    # # Delete the unwanted axes
+    # for j in [0, 1, 3, 4]:
+    #     fig.delaxes(axes[2, j])
+
+    fig.suptitle(f'TFR topomap {Opt.mode.upper()}')
     fig.tight_layout()
     return fig
 
@@ -198,7 +226,7 @@ def add_top_left_notion(ax, notion='a'):
 
 class BasicOpt:
     vmin = -5
-    vmax = 1
+    vmax = 0
     vcenter = -3
     cmap = 'RdBu'
     norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
@@ -243,23 +271,11 @@ for Opt in [MEG_Opt, EEG_Opt]:
     # if save_to_pdf:
     #     mpl.use('pdf')
 
-    for band_name in ['alpha', 'beta']:
-        band = bands.get_band(band_name)
+    df = table.copy()  # make_df(table, band_name)
+    print(df)
 
-        df = make_df(table, band_name)
-        print(df)
-
-        evts = sorted(df['evt'].unique())
-
-        # ! So large and slow opening the pdf file is!
-        # fig = plot_erd_scatter(df, Opt, evts, band_name)
-        # if save_to_pdf:
-        #     pdf.savefig(fig)
-
-        fig = plot_erd_topomap(df, Opt, evts, band_name)
-        fig.savefig(Opt.pdf_path.with_suffix(f'.{band_name}.png'))
-
-        print(f'Plotted {Opt.mode} @band: {band_name}')
+    fig = plot_erd_topomap(df, Opt)
+    fig.savefig(Opt.pdf_path.with_suffix(f'.png'))
 
     print(f'Saved {Opt.mode} to {Opt.pdf_path}')
 
