@@ -130,7 +130,7 @@ def plot_erd_topomap(df, Opt, evts, band_name):
     cols = len(evts)
     fig, axes = plt.subplots(
         1, cols+1,
-        figsize=(4*cols+1, 4),
+        figsize=(3*cols+1, 3),
         gridspec_kw={"width_ratios": [10] * cols + [1]})
 
     if Opt.mode == 'MEG':
@@ -170,7 +170,7 @@ def plot_erd_topomap(df, Opt, evts, band_name):
                                       sphere=(
                                           0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
                                       extrapolate='local',
-                                      cnorm=Opt.norm, cmap=Opt.cmap, size=4, axes=ax, show=False)
+                                      cnorm=Opt.norm, cmap=Opt.cmap, size=3, axes=ax, show=False)
 
         ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
 
