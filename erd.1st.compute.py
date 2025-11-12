@@ -6,9 +6,9 @@ Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
     Read data and select channels.
-    Compute TRF.  
-    Perform cluster tests.  
-    Visualization.  
+    Compute TRF.
+    Perform cluster tests.
+    Visualization.
 
 Functions:
     1. Requirements and constants
@@ -54,7 +54,7 @@ except Exception as err:
 
 profile.merge_with(dict(
     subject_dir=Path('rawdata', profile.subject_name),
-    output_dir=Path('data.v2', 'erd.permutation1000', profile.subject_name),
+    output_dir=Path('data.v2', 'erd-2.permutation1000', profile.subject_name),
     use_latest_ds_dirs=8,  # 2 or 8, lower value means loading fewer data
     epochs_kwargs={'tmin': -2, 'tmax': 5, 'decim': 12},  # sfreq is 1200 Hz
 ))
@@ -158,12 +158,13 @@ tfr = epochs.compute_tfr(
     average=False,
     decim=2,
 )
-tfr.crop(tmin, tmax).apply_baseline(baseline, "logratio")  # "percent")
+# tfr.crop(tmin, tmax).apply_baseline(baseline, "logratio")  # "percent")
 
 for event in tqdm(event_ids, 'TFR, test and visualization'):
     # select desired epochs for visualization
     tfr_ev = tfr[event]
     tfr_ev_avg = tfr_ev.average()
+    tfr_ev_avg.crop(tmin, tmax).apply_baseline(baseline, "logratio")  # "percent")
 
     saving = dict(
         tfr_ev_avg=tfr_ev_avg,
@@ -194,6 +195,7 @@ for event in tqdm(event_ids, 'TFR, test and visualization'):
         )
         save(saving, profile.output_dir.joinpath(
             f'{profile.mode}-{event}-t1-t2.dump'))
+        continue
 
         # note that we keep clusters with p <= 0.05 from the combined clusters
         # of two independent tests; in this example, we do not correct for

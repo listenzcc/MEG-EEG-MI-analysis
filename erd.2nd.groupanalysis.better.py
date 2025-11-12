@@ -29,7 +29,7 @@ from mne.stats import permutation_t_test
 DATA_DIR = Path('./data.v2/erd.permutation1000')
 OUTPUT_DIR = Path('./data.v2/erd.permutation1000.groupanalysis')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-MODE = 'meg'
+MODE = 'eeg'
 
 # %%
 n_observations = 10  # 10 subjects
@@ -126,12 +126,24 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
         obj = load(p)
         tfrs.append(obj['tfr_ev_avg'])
     tfr = tfrs[0].copy()
+
+    tmap = [t<0 and t > -1 for t in tfr.times]
+    print(tfr.times)
+    for i, t in enumerate(tfrs):
+        d = t.data[:, :, tmap]
+        print(i, np.max(d), np.min(d), np.mean(d))
+
+    exit(0)
+
     # Convert into dB
+    # tfr.data = 10 * tfr.data
     tfr.data = 10 * np.mean(np.stack([t.data for t in tfrs]), axis=0)
+    tfr.data -= np.mean(tfr.data[:, :, tfr.times < 0])
 
     # min, center & max ERDS
     vmin, vmax, vcenter, cmap = -5, 1, 0, 'RdBu_r'
     vmin, vmax, vcenter, cmap = -5, 1, -3, 'RdBu'
+    vmin, vmax, vcenter, cmap = -3, 3, 0, 'RdBu'
     cnorm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
     # draw for each channel
@@ -145,15 +157,15 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
             axes=ax,
             colorbar=False,
             show=False,
-            mask=mask,
-            mask_style="mask",
+            # mask=mask,
+            # mask_style="mask",
         )
 
         # 3dB contour
         z = np.abs(tfr.data[i_ch])
         m, n = np.meshgrid(tfr.freqs, tfr.times)
-        cc = ax.contour(n, m, z.transpose(), levels=[3])
-        ax.clabel(cc, inline=True, fontsize=10, fmt='-%1.0f dB')
+        # cc = ax.contour(n, m, z.transpose(), levels=[3])
+        # ax.clabel(cc, inline=True, fontsize=10, fmt='-%1.0f dB')
 
         ax.set_title(tfr.ch_names[i_ch], fontsize=10)
         ax.axvline(0, linewidth=1, color="black", linestyle=":")
@@ -187,9 +199,12 @@ fig.delaxes(axes[5, 2])
 fig.suptitle(f"TFR ({MODE.upper()})")
 fig.tight_layout()
 
-fig.savefig(OUTPUT_DIR.joinpath(f'TFR(ERD)-{MODE}.png'))
+file_name = OUTPUT_DIR.joinpath(f'TFR(ERD)-{MODE}.png')
 
-plt.show()
+fig.savefig(file_name)
+print(f'Saved into {file_name=}')
+
+# plt.show()
 
 
 # %% ---- 2025-10-09 ------------------------

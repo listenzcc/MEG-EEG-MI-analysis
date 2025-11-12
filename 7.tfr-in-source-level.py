@@ -152,6 +152,7 @@ sys.exit(0)
 
 brain = stc.plot(
     subjects_dir=subject.subjects_dir,
+
     hemi="both",
     # views="dorsal",
     # initial_time=1.2,
