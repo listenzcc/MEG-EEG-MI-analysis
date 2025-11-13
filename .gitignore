@@ -6,3 +6,5 @@ data.v2
 rawdata
 meg-eeg-joint-analysis
 tags
+
+__pycache__
