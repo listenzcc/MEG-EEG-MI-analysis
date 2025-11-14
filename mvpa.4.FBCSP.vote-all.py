@@ -100,7 +100,7 @@ def read_data():
 
     l_freq, h_freq = bands.get_band(band_name)
     filter_kwargs = {'l_freq': l_freq, 'h_freq': h_freq, 'n_jobs': n_jobs}
-    use_latest_ds_directories = 2  # 8
+    use_latest_ds_directories = 8  # 8
 
     # Read from file
     found = find_ds_directories(subject_directory)
