@@ -49,7 +49,7 @@ from util.io.file import save
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -201,7 +201,7 @@ for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
         _epochs = epochs_filter.copy()
         _epochs.crop(tmin=0, tmax=tmax)
 
-        X = epochs_filter.get_data(copy=False)
+        X = _epochs.get_data(copy=False)
 
         cv = LeaveOneGroupOut()
 

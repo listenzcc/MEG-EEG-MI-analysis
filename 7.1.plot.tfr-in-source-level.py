@@ -26,6 +26,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # %% ---- 2025-11-12 ------------------------
 # Function and class
+
+
 class FsaverageSubject:
     subject = 'fsaverage'
     subject_dir = mne.datasets.fetch_fsaverage()
@@ -40,6 +42,7 @@ def find_stc(subject, band, mode, evt):
     fpath = folder.joinpath(f'{subject}/{mode}-evt{evt}.stc')
     return fpath
 
+
 def screenshot(subject, band, mode, evt):
     fpath = find_stc(subject, band, mode, evt)
     print(f'{fpath=}')
@@ -52,7 +55,7 @@ def screenshot(subject, band, mode, evt):
     # Ratio by the baseline (-1, 0)
     data = stc.data
     times = stc.times
-    base_data = np.mean(data[:, times<0], axis=1)
+    base_data = np.mean(data[:, times < 0], axis=1)
     extended_base_data = np.stack([base_data for e in times]).T
     print(f'{data.shape=}, {times.shape=}, {base_data.shape=}, {extended_base_data.shape=}')
 
@@ -60,9 +63,8 @@ def screenshot(subject, band, mode, evt):
     data = 10 * np.log10(data/extended_base_data)
     stc.data = data
 
-
-    for t in tqdm([0, 0.2, 0.5, 1, 2, 3]):
-        title=f'{subject}-{mode}-{evt}-{band}-{t}'
+    for t in tqdm([0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]):
+        title = f'{subject}-{mode}-{evt}-{band}-{t:0.1f}'
 
         brain = stc.plot(
             initial_time=t,
@@ -71,19 +73,20 @@ def screenshot(subject, band, mode, evt):
             subjects_dir=FsaverageSubject.subjects_dir,
             transparent=True,
             colormap='RdBu',
-            clim={'kind': 'value', 'pos_lims':(2, 3, 5)},
+            clim={'kind': 'value', 'pos_lims': (2, 3, 5)},
             # clim=dict(kind="value", pos_lims=(10, 20, 30)),
             size=(1600, 800),
             colorbar=False,
-            show_traces=True,
+            show_traces=False,
             title=title,
             brain_kwargs=brain_kwargs,
-            )
+        )
 
         brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
         brain.clear_glyphs()
-        brain.save_image(OUTPUT_DIR.joinpath(f'{title}-{t=}.png'))
+        brain.save_image(OUTPUT_DIR.joinpath(f'{title}.png'))
         brain.close()
+
 
 def display(subject, band, mode, evt):
     fpath = find_stc(subject, band, mode, evt)
@@ -97,7 +100,7 @@ def display(subject, band, mode, evt):
     # Ratio by the baseline (-1, 0)
     data = stc.data
     times = stc.times
-    base_data = np.mean(data[:, times<0], axis=1)
+    base_data = np.mean(data[:, times < 0], axis=1)
     extended_base_data = np.stack([base_data for e in times]).T
     print(f'{data.shape=}, {times.shape=}, {base_data.shape=}, {extended_base_data.shape=}')
 
@@ -105,7 +108,7 @@ def display(subject, band, mode, evt):
     data = 10 * np.log10(data/extended_base_data)
     stc.data = data
 
-    title=f'{subject}-{mode}-{evt}-{band}'
+    title = f'{subject}-{mode}-{evt}-{band}'
 
     brain = stc.plot(
         initial_time=0,
@@ -114,31 +117,36 @@ def display(subject, band, mode, evt):
         subjects_dir=FsaverageSubject.subjects_dir,
         transparent=True,
         colormap='RdBu',
-        clim={'kind': 'value', 'pos_lims':(2, 3, 5)},
+        clim={'kind': 'value', 'pos_lims': (2, 3, 5)},
         # clim=dict(kind="value", pos_lims=(10, 20, 30)),
         size=(1600, 800),
         colorbar=False,
         title=title,
         brain_kwargs=brain_kwargs,
-        )
+    )
 
     brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
     brain.clear_glyphs()
 
     brain.show()
 
+
 # %% ---- 2025-11-12 ------------------------
 # Play ground
-brain_kwargs = {'alpha':1.0,
-                'background':"white",
-                'foreground':'black',
-                'cortex':"low_contrast"}
+brain_kwargs = {'alpha': 1.0,
+                'background': "white",
+                'foreground': 'black',
+                'cortex': "low_contrast"}
 
 subject = 'S07'
-band='alpha'
-mode='meg'
-evt='1'
+band = 'alpha'
+mode = 'meg'
+evt = '1'
 tmin, tmax = -1, 5
+
+for band in ['alpha', 'beta']:
+    for evt in ['1', '2', '3', '4', '5']:
+        screenshot(subject, band, mode, evt)
 
 while True:
     prompt = 'Example: $subject $band $mode $evt (Ctrl+c to escape) >>'
@@ -161,5 +169,3 @@ sys.exit(0)
 
 # %% ---- 2025-11-12 ------------------------
 # Pending
-
-
