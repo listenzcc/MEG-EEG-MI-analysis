@@ -117,7 +117,7 @@ while True:
                 clim=dict(kind="value", lims=(10, 20, 30)),
                 title=f'F {inp}',
                 size=(1600, 800),
-                show_traces=False,
+                show_traces=True,
                 brain_kwargs=brain_kwargs,
             )
             brain.add_text(0.5, 0.9, f'{t}', 'title', font_size=16)
@@ -132,26 +132,26 @@ while True:
                     brain.add_label(label, hemi=hemi,
                                     color=color, borders=True)
 
-            # for label_name, color in [
-            #     (labels_parc_df.query('name=="Brodmann.1-lh"')
-            #      ['label'].values[0], 'black'),
-            #     ('BA4a', 'blue'),
-            #     ('BA4p', 'green'),
-            #     ('V1', 'white'),
-            #     ('V2', 'yellow'),
-            # ]:
-            #     for hemi in ['lh', 'rh']:
-            #         brain.add_label(label_name, hemi=hemi,
-            #                         color=color, borders=True)
-            #         # brain.add_label("BA4a", hemi=hemi,
-            #         #                 color="green", borders=True)
-            #         # brain.add_label("BA4p", hemi=hemi,
-            #         #                 color="blue", borders=True)
+            for label_name, color in [
+                (labels_parc_df.query('name=="Brodmann.1-lh"')
+                 ['label'].values[0], 'black'),
+                ('BA4a', 'blue'),
+                ('BA4p', 'green'),
+                ('V1', 'white'),
+                ('V2', 'yellow'),
+            ]:
+                for hemi in ['lh', 'rh']:
+                    brain.add_label(label_name, hemi=hemi,
+                                    color=color, borders=True)
+                    # brain.add_label("BA4a", hemi=hemi,
+                    #                 color="green", borders=True)
+                    # brain.add_label("BA4p", hemi=hemi,
+                    #                 color="blue", borders=True)
             # break
 
             # Draw once and wait.
-            # input('>>')
-            # break
+            input('>>')
+            break
 
             # Save images for every loop.
             brain.save_image(f'./figures/anova-f-{inp}-{t=}.png')

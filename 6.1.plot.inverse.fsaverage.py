@@ -116,6 +116,10 @@ if True:
 
             brain.add_text(
                 0.1, 0.9, f'evt{evt} t={t:.1f}s', 'title', font_size=16)
+
+            input('>>')
+            exit(0)
+
             brain.save_image(output_directory.joinpath(
                 f'fsaverage-evt{evt}-t{t:.1f}.png'))
             brain.close()
