@@ -88,10 +88,10 @@ def display(subject, band, mode, evt):
     brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
     # brain.clear_glyphs()
 
-    for name, labels in motor_regions.items():
+    for name, labels in roi_labels.items():
         for label in labels:
-            brain.add_label(label, borders=False, alpha=0.7,
-                            color=motor_region_colors[name])
+            brain.add_label(label, borders=True, alpha=0.7,
+                            color=roi_colors[name])
 
     brain.show()
 
@@ -126,68 +126,71 @@ def extract_motor_areas_from_labels():
 # %% ---- 2025-11-19 ------------------------
 # Play ground
 
+# %%
 # 下载 200-parcel, 17-network 版本
-atlas = datasets.fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
+# atlas = datasets.fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
 
 # labels 是一个列表： index = parcel 编号
-labels = atlas['labels']
+# labels = atlas['labels']
 
-# atlas map (nii.gz) 在 atlas['maps']
-# labels[0] 是 background，因此 label 1~200 对应 labels[1:]
-atlas_map = {}
-for i, name in enumerate(labels[1:], start=1):
-    # print(f"{i}\t{name}")
-    atlas_map[name.replace('17Networks_', '')] = i
-print(atlas_map)
+# # atlas map (nii.gz) 在 atlas['maps']
+# # labels[0] 是 background，因此 label 1~200 对应 labels[1:]
+# atlas_map = {}
+# for i, name in enumerate(labels[1:], start=1):
+#     # print(f"{i}\t{name}")
+#     atlas_map[name.replace('17Networks_', '')] = i
+# print(atlas_map)
+
+# labels = joblib.load('./data/schaefer_labels.dump')
+# label_table = []
+# smoothed_dir = CACHE_DIR.joinpath('smoothed-schaefer-labels/')
+# smoothed_dir.mkdir(parents=True, exist_ok=True)
+# for label in labels:
+#     label_name = f'smoothed-{label.name}-fsaverage5-{label.hemi}.label'
+#     name = label.name
+
+#     try:
+#         label = mne.read_label(smoothed_dir.joinpath(label_name))
+#         label.name = name
+#     except:
+#         label.smooth()
+#         label.save(smoothed_dir.joinpath(label_name))
+
+#     label_table.append(
+#         (label.name, label.hemi, label, len(label.vertices)))
+
+# label_table = pd.DataFrame(label_table, columns=[
+#                            'Name', 'Hemi', 'Label', 'NumVertices'])
+# print(label_table)
+
+# Load the labels
+subject = FsaverageSubject()
+parc = "aparc_sub"
+labels_parc = mne.read_labels_from_annot(
+    subject.subject, parc=parc, subjects_dir=subject.subjects_dir
+)
+labels_parc_df = pd.DataFrame(
+    [(e.name, e) for e in labels_parc], columns=["name", "label"]
+)
+labels_parc_df = labels_parc_df[labels_parc_df['name'].map(
+    lambda e: not e.startswith('unknown'))]
+labels_parc_df.index = labels_parc_df['name']
+labels_parc_df
 
 # %%
-labels = joblib.load('./data/schaefer_labels.dump')
-label_table = []
-smoothed_dir = CACHE_DIR.joinpath('smoothed-schaefer-labels/')
-smoothed_dir.mkdir(parents=True, exist_ok=True)
-for label in labels:
-    label_name = f'smoothed-{label.name}-fsaverage5-{label.hemi}.label'
-    name = label.name
-
-    try:
-        label = mne.read_label(smoothed_dir.joinpath(label_name))
-        label.name = name
-    except:
-        label.smooth()
-        label.save(smoothed_dir.joinpath(label_name))
-
-    label_table.append(
-        (label.name, label.hemi, label, len(label.vertices)))
-
-label_table = pd.DataFrame(label_table, columns=[
-                           'Name', 'Hemi', 'Label', 'NumVertices'])
-print(label_table)
-
-# %%
-
-# %%
-
-# %%
-motor_region_names = {
-    'PMd': ['LH_DorsAttnB_FEF_1', 'RH_DorsAttnB_FEF_1'],
-    'PMv': ['LH_SalVentAttnA_FrOper_1', 'LH_SalVentAttnA_FrOper_2', 'RH_SalVentAttnA_FrOper_1'],
-    'SMA': ['LH_SomMotA_7', 'LH_SomMotA_8', 'RH_SomMotA_9', 'RH_SomMotA_10'],
-    'SM1_hand': ['LH_SomMotB_Cent_1', 'LH_SomMotB_Cent_2', 'RH_SomMotB_Cent_1']
+roi_names = {
+    'central': [f'postcentral_{i}' for i in [3, 4, 5, 6, 7, 8, 9]] + [f'precentral_{i}' for i in [5, 6, 7, 8]],
+    'pariental': [f'superiorparietal_{i}' for i in [11, 12]] + [f'inferiorparietal_{i}' for i in [1, 4, 3, 8]],
+    'occipital': [f'lateraloccipital_{i}' for i in [2, 3, 6, 7, 8, 9]]
 }
-motor_region_nums = {
-    'PMd': [28, 39, 61],
-    'PMv': [27],
-    'SMA': [13],
-    'SM1_hand': [14, 15, 35]
+roi_colors = {
+    'central': 'cyan',
+    'pariental': 'green',
+    'occipital': 'blue'
 }
-motor_region_colors = {
-    'PMd': 'red',
-    'PMv': 'blue',
-    'SMA': 'green',
-    'SM1_hand': 'cyan'
-}
-motor_regions = extract_motor_areas_from_labels()
-print(motor_regions)
+roi_labels = {k: [labels_parc_df.loc[e+'-lh', 'label'] for e in v]
+              for k, v in roi_names.items()}
+roi_labels
 
 # %% ---- 2025-11-19 ------------------------
 # Pending
