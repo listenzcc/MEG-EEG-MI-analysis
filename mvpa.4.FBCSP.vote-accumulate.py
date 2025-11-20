@@ -197,7 +197,7 @@ for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
     epochs_filter.filter(**filter_kwargs)
     epochs_filter.apply_baseline((-1, 0))
 
-    for tmax in [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]:
+    for tmax in tqdm([0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]):
         _epochs = epochs_filter.copy()
         _epochs.crop(tmin=0, tmax=tmax)
 

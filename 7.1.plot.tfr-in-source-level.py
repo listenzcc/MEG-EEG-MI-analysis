@@ -43,7 +43,7 @@ def find_stc(subject, band, mode, evt):
     return fpath
 
 
-def screenshot(subject, band, mode, evt):
+def read_compute_stc(subject, band, mode, evt, tmin, tmax):
     fpath = find_stc(subject, band, mode, evt)
     print(f'{fpath=}')
 
@@ -63,9 +63,23 @@ def screenshot(subject, band, mode, evt):
     data = 10 * np.log10(data/extended_base_data)
     stc.data = data
 
+    return stc
+
+
+def screenshot(subject, band, mode, evt):
+    if subject == 'average':
+        stcs = [read_compute_stc(s, band, mode, evt, tmin, tmax) for s in
+                ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10']]
+        data = np.mean([e.data for e in stcs], axis=0)
+        stc = stcs[0]
+        stc.data = data
+        clim = {'kind': 'value', 'pos_lims': (1, 2, 3)}
+    else:
+        stc = read_compute_stc(subject, band, mode, evt, tmin, tmax)
+        clim = {'kind': 'value', 'pos_lims': (2, 3, 5)}
+
     for t in tqdm([0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]):
         title = f'{subject}-{mode}-{evt}-{band}-{t:0.1f}'
-
         brain = stc.plot(
             initial_time=t,
             hemi="split",
@@ -73,43 +87,33 @@ def screenshot(subject, band, mode, evt):
             subjects_dir=FsaverageSubject.subjects_dir,
             transparent=True,
             colormap='RdBu',
-            clim={'kind': 'value', 'pos_lims': (2, 3, 5)},
-            # clim=dict(kind="value", pos_lims=(10, 20, 30)),
+            clim=clim,
             size=(1600, 800),
             colorbar=False,
             show_traces=False,
             title=title,
             brain_kwargs=brain_kwargs,
         )
-
         brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
         brain.clear_glyphs()
         brain.save_image(OUTPUT_DIR.joinpath(f'{title}.png'))
         brain.close()
+    return
 
 
 def display(subject, band, mode, evt):
-    fpath = find_stc(subject, band, mode, evt)
-    print(f'{fpath=}')
-
-    stc = mne.read_source_estimate(fpath)
-    stc.crop(tmin=tmin, tmax=tmax)
-    stc.subject = FsaverageSubject.subject
-    print(f'{stc=}')
-
-    # Ratio by the baseline (-1, 0)
-    data = stc.data
-    times = stc.times
-    base_data = np.mean(data[:, times < 0], axis=1)
-    extended_base_data = np.stack([base_data for e in times]).T
-    print(f'{data.shape=}, {times.shape=}, {base_data.shape=}, {extended_base_data.shape=}')
-
-    # Convert into dB
-    data = 10 * np.log10(data/extended_base_data)
-    stc.data = data
+    if subject == 'average':
+        stcs = [read_compute_stc(s, band, mode, evt, tmin, tmax) for s in
+                ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10']]
+        data = np.mean([e.data for e in stcs], axis=0)
+        stc = stcs[0]
+        stc.data = data
+        clim = {'kind': 'value', 'pos_lims': (1, 2, 3)}
+    else:
+        stc = read_compute_stc(subject, band, mode, evt, tmin, tmax)
+        clim = {'kind': 'value', 'pos_lims': (2, 3, 5)}
 
     title = f'{subject}-{mode}-{evt}-{band}'
-
     brain = stc.plot(
         initial_time=0,
         hemi="split",
@@ -117,18 +121,15 @@ def display(subject, band, mode, evt):
         subjects_dir=FsaverageSubject.subjects_dir,
         transparent=True,
         colormap='RdBu',
-        clim={'kind': 'value', 'pos_lims': (2, 3, 5)},
-        # clim=dict(kind="value", pos_lims=(10, 20, 30)),
+        clim=clim,
         size=(1600, 800),
         colorbar=False,
         title=title,
         brain_kwargs=brain_kwargs,
     )
-
     brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
-    brain.clear_glyphs()
-
     brain.show()
+    return
 
 
 # %% ---- 2025-11-12 ------------------------
@@ -138,12 +139,13 @@ brain_kwargs = {'alpha': 1.0,
                 'foreground': 'black',
                 'cortex': "low_contrast"}
 
-subject = 'S07'
-band = 'alpha'
+subject = 'average'  # 'S01' ~ 'S10' or 'average'
+band = 'alpha'  # 'alpha' or 'beta'
 mode = 'meg'
-evt = '1'
+evt = '1'  # '1' ~ '5'
 tmin, tmax = -1, 5
 
+# ! Screenshot all combinations
 for band in ['alpha', 'beta']:
     for evt in ['1', '2', '3', '4', '5']:
         screenshot(subject, band, mode, evt)
