@@ -180,12 +180,12 @@ labels_parc_df
 # %%
 roi_names = {
     'central': [f'postcentral_{i}' for i in [3, 4, 5, 6, 7, 8, 9]] + [f'precentral_{i}' for i in [5, 6, 7, 8]],
-    'pariental': [f'superiorparietal_{i}' for i in [11, 12]] + [f'inferiorparietal_{i}' for i in [1, 4, 3, 8]],
+    'parietal': [f'superiorparietal_{i}' for i in [11, 12]] + [f'inferiorparietal_{i}' for i in [1, 4, 3, 8]],
     'occipital': [f'lateraloccipital_{i}' for i in [2, 3, 6, 7, 8, 9]]
 }
 roi_colors = {
     'central': 'cyan',
-    'pariental': 'green',
+    'parietal': 'green',
     'occipital': 'blue'
 }
 roi_labels = {k: [labels_parc_df.loc[e+'-lh', 'label'] for e in v]
