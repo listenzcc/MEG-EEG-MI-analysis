@@ -28,6 +28,15 @@ from util.easy_import import *
 CACHE_DIR = Path(f'./data/cache/')
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+# %%
+TASK_TABLE = {
+    '1': 'Hand',
+    '2': 'Wrist',
+    '3': 'Elbow',
+    '4': 'Shoulder',
+    '5': 'Rest'
+}
+
 # %% ---- 2025-11-21 ------------------------
 # Function and class
 
@@ -118,17 +127,90 @@ else:
     large_table = pd.DataFrame(array)
     joblib.dump({'df': large_table, 'times': times}, cached_file)
 
+large_table = large_table[large_table['area'].isin(['central', 'parietal'])]
 display(times)
 display(large_table)
 
 # %%
-task_table = {
-    '1': 'Hand',
-    '2': 'Wrist',
-    '3': 'Elbow',
-    '4': 'Shoulder',
-    '5': 'Rest'
-}
+dfs = []
+ts = [0.2, 0.4, 0.6, 0.8, 1.0]
+for t in tqdm(ts):
+    df = large_table.copy()
+    time_idx = np.argmin(np.abs(times - t))
+    df['erd'] = df['mean_erd'].map(lambda e: e[time_idx])
+    df['t'] = t
+    dfs.append(df)
+df = pd.concat(dfs)
+display(df)
+
+# %%
+
+# 首先将数据转换为宽格式
+df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't'],  # 保持其他标识列
+                          columns='band',
+                          values='erd')
+
+# 重置索引
+df_pivot = df_pivot.reset_index()
+display(df_pivot)
+
+# %%
+sns.set_theme()
+
+g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
+               hue='area', col='evt',  # 按事件分面
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
+plt.show()
+
+g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
+               hue='area', col='t',  # 按时间分面
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
+plt.show()
+
+# %%
+ax = sns.lmplot(df_pivot, x='alpha', y='beta', hue='area')
+plt.show()
+
+
+# %%
+# Compute correlation between alpha and beta bands for every area and event
+
+
+array = []
+for subject, evt, area in product(large_table['subject'].unique(),
+                                  large_table['evt'].unique(),
+                                  large_table['area'].unique()):
+    df_sub = large_table[
+        (large_table['subject'] == subject) &
+        (large_table['evt'] == evt) &
+        (large_table['area'] == area)
+    ]
+    alpha_erd = np.mean(
+        df_sub[df_sub['band'] == 'alpha']['mean_erd'].values, axis=0)
+    beta_erd = np.mean(
+        df_sub[df_sub['band'] == 'beta']['mean_erd'].values, axis=0)
+    corr = np.corrcoef(alpha_erd, beta_erd)[0, 1]
+    corr = np.abs(corr)
+    array.append({
+        'subject': subject,
+        'evt': evt,
+        'area': area,
+        'alpha_beta_correlation': corr})
+df = pd.DataFrame(array)
+display(df)
+
+ax = sns.boxplot(df, x='evt', y='alpha_beta_correlation',
+                 hue='area', showfliers=False)
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+plt.show()
+
+
+# %%
+
 
 # %% ---- 2025-11-21 ------------------------
 # Pending
@@ -142,7 +224,7 @@ for t in tqdm(ts):
     dfs.append(df)
 
 df = pd.concat(dfs)
-df['evt'] = df['evt'].map(lambda e: task_table[e])
+df['evt'] = df['evt'].map(lambda e: TASK_TABLE[e])
 display(df)
 
 # %%
