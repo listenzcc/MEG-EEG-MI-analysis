@@ -132,6 +132,26 @@ display(times)
 display(large_table)
 
 # %%
+
+
+# def _mk_area(sub_area):
+#     if 'central' in sub_area:
+#         if 'pre' in sub_area:
+#             return 'precentral'
+#         else:
+#             return 'postcentral'
+#     elif 'parietal' in sub_area:
+#         return 'parietal'
+#     elif 'occipital' in sub_area:
+#         return 'occipital'
+#     else:
+#         raise ValueError(f'Unknown sub_area: {sub_area}')
+
+
+# large_table['area'] = large_table['sub_area'].map(_mk_area)
+# display(large_table)
+
+# %%
 dfs = []
 ts = [0.2, 0.4, 0.6, 0.8, 1.0]
 for t in tqdm(ts):
@@ -172,13 +192,15 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
 plt.show()
 
 # %%
-ax = sns.lmplot(df_pivot, x='alpha', y='beta', hue='area')
+g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
+               hue='area', col='t', row='evt',  # 按事件和时间分面
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
 plt.show()
-
 
 # %%
 # Compute correlation between alpha and beta bands for every area and event
-
 
 array = []
 for subject, evt, area in product(large_table['subject'].unique(),
