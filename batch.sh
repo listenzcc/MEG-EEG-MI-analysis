@@ -4,8 +4,9 @@
 # script=7.tfr-in-source-level.py
 # script=mvpa.source.1.py
 # script=mvpa.1.1.rawEpochs.accumulate.py
-script=mvpa.4.FBCSP.vote-accumulate-dev.py
+# script=mvpa.4.FBCSP.vote-accumulate-dev.py
 # script=mvpa.4.FBCSP.vote-all.py
+script=mvpa.1.rawEpochs.accumulate.noFB.py
 
 python $script -s ./rawdata/S01_20220119 &
 python $script -s ./rawdata/S02_20220315 &

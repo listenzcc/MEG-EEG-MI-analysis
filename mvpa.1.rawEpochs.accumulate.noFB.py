@@ -1,11 +1,11 @@
 """
-File: mvpa.1.raw.epoch.py
+File: mvpa.1.rawEpochs.accumulate.noFB.py
 Author: Chuncheng Zhang
 Date: 2025-07-21
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    MPVA with raw epochs.
+    MPVA with raw epochs without FB.
 
 Functions:
     1. Requirements and constants
@@ -18,7 +18,7 @@ Functions:
 
 # %% ---- 2025-07-21 ------------------------
 # Requirements and constants
-from FBCSP.FBCSP_class import filter_bank, FBCSP_info
+import seaborn as sns
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 import joblib
 import matplotlib
@@ -42,17 +42,18 @@ from mne.decoding import (
 )
 
 from util.bands import Bands
-from util.io.file import save
 from util.easy_import import *
 from util.io.ds_directory_operation import find_ds_directories, read_ds_directory
 
+# %%
+
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
-subject_directory = Path('./rawdata/S01_20220119')
+subject_directory = Path('./rawdata/S07_20231220')
 
 # Use the arguments
-parse = argparse.ArgumentParser('Decode on epochs, with accumulating manner.')
+parse = argparse.ArgumentParser('Compute TFR')
 parse.add_argument('-s', '--subject-dir', required=True)
 args = parse.parse_args()
 subject_directory = Path(args.subject_dir)
@@ -60,9 +61,25 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-OUTPUT_DIR = Path(f'./data/MVPA-accumulate/{subject_name}')
+OUTPUT_DIR = Path(f'./data/MVPA.accumulate/{subject_name}')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# %%
+SUMMARY_MODE = True
+if SUMMARY_MODE:
+    dump_files = list(OUTPUT_DIR.parent.rglob('*.joblib'))
+    print(dump_files)
+    dfs = [joblib.load(f) for f in dump_files]
+    for df, file in zip(dfs, dump_files):
+        mode = file.stem.split('.')[-1]
+        df['mode'] = mode
+    df = pd.concat(dfs)
+    print(df)
+    import seaborn as sns
+    sns.lineplot(df, x='tmax', y='accuracy', hue='mode')
+    plt.show()
+
+# %%
 
 # %% ---- 2025-07-21 ------------------------
 # Function and class
@@ -79,9 +96,9 @@ def read_data():
     # Setup options
     bands = Bands()
     l_freq, h_freq = bands.get_band(band_name)
-    epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 6}
+    epochs_kwargs = {'tmin': -2, 'tmax': 5, 'decim': 12}  # decim=6, 12 ...
     filter_kwargs = {'l_freq': l_freq, 'h_freq': h_freq, 'n_jobs': n_jobs}
-    use_latest_ds_directories = 8
+    use_latest_ds_directories = 8  # 8
 
     # Read from file
     found = find_ds_directories(subject_directory)
@@ -144,56 +161,77 @@ elif mode == 'eeg':
 else:
     raise ValueError(f'Unknown mode: {mode}')
 
-epochs = epochs.resample(100, npad="auto")  # resample to 100 Hz
+
+epochs = epochs.resample(40, npad="auto")  # resample to 40 Hz
 
 cv = np.max(groups)+1
 # MEG signals: n_epochs, n_meg_channels, n_times
 X = epochs.get_data(copy=False)
 y = epochs.events[:, 2]  # target
-print(f'{X.shape=}, {y.shape=}')
 
 # %%
-k_select = 10
-n_components = 4
-# freq_bands = [[4+i*4, 8+i*4] for i in range(9)]+[[8, 32]]
-freq_bands = [(e, e+4) for e in range(1, 45, 2)]
-filter_type = 'iir'
-filt_order = 5
+scoring = make_scorer(accuracy_score, greater_is_better=True)
 
-FB = filter_bank(freq_bands, epochs.info['sfreq'], filt_order, filter_type)
-filtered_X = FB.filt(X)
-# filtered_X shape is (n_bands, n_samples, n_channels, n_times)
-print(f'{filtered_X.shape=}')
 
 # %%
-times = epochs.times
-results = {
-    'subject': subject_name,
-    'y_true': y,
-    'tmin': np.min(times),
-    'decoded': []
-}
-# [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]:
-for tmax in tqdm([0.1, 0.3, 0.5, 1.0, 2.0, 4.0]):
-    tmax_idx = len(times[times < tmax])
-    y_pred = y*0
-    all_index = np.array([e for e in range(len(y))])
-    for test_group in tqdm(set(groups)):
-        test_index = all_index[np.where([e == test_group for e in groups])[0]]
-        train_index = all_index[np.where([e != test_group for e in groups])[0]]
-        fbcsp = FBCSP_info(FB, n_components, (0, tmax_idx), k_select)
-        fbcsp.fit(filtered_X[:, train_index], y[train_index])
-        y_pred[test_index] = fbcsp.predict(filtered_X[:, test_index])
+results = []
 
-    print(y, y_pred)
-    results['decoded'].append({
-        'y_pred': y_pred,
-        'tmax': tmax
-    })
+for tmax in tqdm([0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 2.0, 3.0, 4.0]):
+    tmax_idx = len(epochs.times[epochs.times < tmax])
+    X_t = X[:, :, :tmax_idx]
 
-save(results, OUTPUT_DIR.joinpath(f'{mode}-results.dump'))
+    # Spatio-temporal decoding
 
-print(f'Finished: {subject_name=}')
+    # Uses all MEG sensors and time points as separate classification
+    # features, so the resulting filters used are spatio-temporal
+    clf = make_pipeline(
+        Scaler(epochs.info),
+        Vectorizer(),
+        StandardScaler(),  # In question
+        LinearModel(LogisticRegression(solver="lbfgs", max_iter=200)),
+    )
+
+    scores = cross_val_multiscore(
+        clf, X_t, y, groups=groups, cv=cv, n_jobs=2)
+
+    # Mean scores across cross-validation splits
+    score = np.mean(scores, axis=0)
+    results.append((tmax, score, scores))
+    print(f"Spatio-temporal {tmax=}: {100 * score:0.1f}% (Detail: {scores})")
+
+results = pd.DataFrame(results, columns=['tmax', 'accuracy', 'accuracies'])
+results['subject'] = subject_name
+results['mode'] = mode
+display(results)
+
+joblib.dump(results, OUTPUT_DIR /
+            f'mvpa.rawEpochs.accumulate.noFB.{mode}.joblib')
+exit(0)
+
+
+# %%
+sns.lineplot(results, x='tmax', y='accuracy')
+plt.show()
+
+# %%
+# Over time decoding
+clf = make_pipeline(
+    StandardScaler(),
+    LinearModel(LogisticRegression(solver="lbfgs"))
+)
+
+time_decod = SlidingEstimator(
+    clf, n_jobs=n_jobs, scoring=scoring, verbose=True)
+
+scores = cross_val_multiscore(
+    time_decod, X, y, groups=groups, cv=cv, n_jobs=n_jobs)
+
+# Mean scores across cross-validation splits
+scores = np.mean(scores, axis=0)
+
+print(f'Time decoding: {scores=}')
+
+print(f'Finished decoding {subject_name=}, {mode=}')
 
 # %% ---- 2025-07-21 ------------------------
 # Pending
