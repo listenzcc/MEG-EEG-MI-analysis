@@ -64,7 +64,7 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.FBCSP.vote-accumulate-2/{subject_name}')
+data_directory = Path(f'./data/MVPA.FBCSP.vote-accumulate-dev/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # %%
@@ -208,6 +208,7 @@ for freqIdx, (fmin, fmax) in enumerate(freq_ranges):
         clf = make_pipeline(
             Scaler(epochs_filter.info),
             CSP(),
+            SelectKBest(mutual_info_classif, k=10),
             LogisticRegression(solver="liblinear"),
         )
         y_proba = cross_val_predict(

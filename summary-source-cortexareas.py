@@ -20,7 +20,9 @@ Functions:
 # %% ---- 2025-11-21 ------------------------
 # Requirements and constants
 import seaborn as sns
-import seaborn.objects as so
+import statsmodels.api as sm
+
+from scipy import stats
 from itertools import product
 from util.easy_import import *
 
@@ -172,24 +174,48 @@ df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't'],  # 
 
 # 重置索引
 df_pivot = df_pivot.reset_index()
+df_pivot['evt'] = df_pivot['evt'].map(lambda e: TASK_TABLE[e])
 display(df_pivot)
 
+
 # %%
-sns.set_theme()
+sns.set_theme(context='paper', style='ticks', font_scale=2)
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                hue='area', col='evt',  # 按事件分面
+               markers='.',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
                ci=95)  # 置信区间
+g.set_titles(col_template="{col_name}")
 plt.show()
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                hue='area', col='t',  # 按时间分面
+               markers='.',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
                ci=95)  # 置信区间
+g.set_titles(col_template="t = {col_name}s")
 plt.show()
+
+# %%
+for evt in df_pivot['evt'].unique():
+    for area in df_pivot['area'].unique():
+        # [df_pivot['evt'] == evt]
+        df_evt = df_pivot.query(f'evt=="{evt}" & area=="{area}"')
+        model = sm.OLS(df_evt['beta'], sm.add_constant(df_evt['alpha'])).fit()
+        print(
+            f'{evt=}, {area=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
+        print(model.summary())
+
+
+# %%
+model.params
+
+# %%
+
+exit(0)
 
 # %%
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
@@ -229,9 +255,6 @@ ax = sns.boxplot(df, x='evt', y='alpha_beta_correlation',
                  hue='area', showfliers=False)
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
 plt.show()
-
-
-# %%
 
 
 # %% ---- 2025-11-21 ------------------------

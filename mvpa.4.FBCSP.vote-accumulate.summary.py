@@ -14,7 +14,10 @@ OUTPUT_DIR = Path('./data/MVPA.FBCSP.vote.results.better')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 data_directories = [
-    Path('./data/MVPA.FBCSP.vote-accumulate'),
+    Path('./data/MVPA.FBCSP.vote-accumulate.eeg'),
+    Path('./data/MVPA.FBCSP.vote-accumulate.meg'),
+    Path('./data/MVPA.FBCSP.vote-accumulate-1'),
+    Path('./data/MVPA.FBCSP.vote-accumulate-2'),
 ]
 
 tmax_array = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
@@ -23,7 +26,7 @@ data = []
 
 for data_directory in data_directories:
     name = data_directory.name
-    mode = name.split('.')[-2].upper()
+    mode = name.split('.')[-1].upper()
     print(f'Working with {name=}, {mode=}')
 
     data_files = sorted(list(data_directory.rglob('*.dump')))
@@ -41,6 +44,7 @@ for data_directory in data_directories:
             data.append({
                 'acc': acc,
                 'tmax': tmax,
+                'mode': mode,
                 'subject': subject,
                 'y_pred': y_pred,
             })
@@ -49,11 +53,19 @@ data = pd.DataFrame(data)
 print(data)
 
 # %%
-sns.lineplot(data, x='tmax', y='acc')
+d = data.query('tmax==4.0')
+print(d.groupby('mode').mean('acc'))
+
+
+# %%
+sns.set_theme(context='paper', style='ticks', font_scale=1)
+sns.lineplot(data, x='tmax', y='acc', hue='mode')
 plt.show()
 
 
 # %%
+
+exit(0)
 
 # %%
 
