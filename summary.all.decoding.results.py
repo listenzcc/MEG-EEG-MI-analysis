@@ -20,9 +20,12 @@ Functions:
 # Requirements and constants
 from util.easy_import import *
 
+OUTPUT_DIR = Path('./data')
 
 # %% ---- 2025-11-26 ------------------------
 # Function and class
+
+
 def read_csv(fname):
     df = pd.read_csv(fname, index_col=0)
     return fix_column_contents(df)
@@ -55,8 +58,14 @@ def string_to_numpy(array_str):
     return np.array(array_data)
 
 
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=9, va='bottom')
+    return
+
 # %% ---- 2025-11-26 ------------------------
 # Play ground
+
 
 # %%
 acc_fbcsp = read_csv('./data/decoding-fbcsp.csv')
@@ -112,8 +121,10 @@ for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
                         cbar_kws={"shrink": 0.7},
                         ax=ax)
         g.set_xticklabels(g.get_xticklabels(), rotation=0)
-        ax.set_title(f'{mode=} | {method=}')
+        ax.set_title(f'{mode=} | {method=}', fontweight='bold')
+        add_top_left_notion(ax, 'abcdefg'[j*3+i])
 plt.tight_layout()
+fig.savefig(OUTPUT_DIR / 'confusion-matrix.png')
 plt.show()
 
 # Relative
@@ -138,25 +149,54 @@ for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
         cbar = ax.collections[0].colorbar
         cbar.set_ticks([-0.2, 0, 0.2])
         g.set_xticklabels(g.get_xticklabels(), rotation=0)
-        ax.set_title(f'{mode=} | {method=}')
+        ax.set_title(f'{mode=} | {method=}', fontweight='bold')
+        add_top_left_notion(ax, 'abcdefg'[j*3+i])
 plt.tight_layout()
+fig.savefig(OUTPUT_DIR / 'confusion-matrix-1.png')
 plt.show()
 
 # %%
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
 df = pd.concat([acc_fbcnet, acc_fbcsp])
+ax = axes[0]
 sns.barplot(df, x='method', hue='mode', y='accuracy',
-            hue_order=['EEG', 'MEG', 'COMBINE'])
-plt.show()
+            order=['FBCSP', 'FBCNet'],
+            hue_order=['EEG', 'MEG', 'COMBINE'], ax=ax)
+ax.axhline(y=0.2, linestyle=':', color='black')
+# Add annotations for mean values
+for container in ax.containers:
+    for bar in container:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., 0.2,
+                f'{height:.3f}', ha='center', va='bottom', fontsize=9, color='white')
+ax.legend(loc='lower right', fontsize='small')
+ax.set_title('Accuracy with FBCSP and FBCNet', fontweight='bold')
 
-# %%
-sns.lineplot(acc_time, x='t', hue='mode', y='accuracy', style='method')
-plt.axvline(x=0, linestyle=':', color='black')
-plt.axhline(y=0.2, linestyle=':', color='black')
-plt.show()
+ax = axes[1]
+sns.lineplot(acc_time, x='t', hue='mode', y='accuracy', style='method', ax=ax)
+ax.axvline(x=0, linestyle=':', color='black')
+ax.axhline(y=0.2, linestyle=':', color='black')
+ax.set_ylim([0.15, 0.55])
+ax.set_yticks([0.2, 0.3, 0.4, 0.5])
+ax.legend(fontsize='small')
+ax.set_title('Accuracy with LR across times', fontweight='bold')
 
-# %%
-sns.lineplot(acc_freq, x='freq', hue='mode', y='accuracy')
-plt.axhline(y=0.2, linestyle=':', color='black')
+ax = axes[2]
+sns.lineplot(acc_freq, x='freq', hue='mode', y='accuracy', ax=ax)
+ax.axhline(y=0.2, linestyle=':', color='black')
+ax.set_ylim([0.15, 0.55])
+ax.set_yticks([0.2, 0.3, 0.4, 0.5])
+ax.legend(fontsize='small')
+ax.set_title('Accuracy with CSP across frequencies', fontweight='bold')
+
+for i, ax in enumerate(axes):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    add_top_left_notion(ax, notion='abcdefg'[i])
+
+fig.tight_layout()
+fig.savefig(OUTPUT_DIR / 'accuracy.png')
 plt.show()
 
 # %% ---- 2025-11-26 ------------------------

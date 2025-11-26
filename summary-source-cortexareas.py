@@ -84,6 +84,12 @@ def read_compute_stc(subject, band, mode, evt, tmin=-1, tmax=2):
     return stc
 
 
+def add_top_left_notion(ax, notion='a'):
+    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+            fontsize=12, va='bottom')
+    return
+
+
 class ROI:
     names = {
         'central': [f'postcentral_{i}' for i in [3, 4, 5, 6, 7, 8, 9]] + [f'precentral_{i}' for i in [5, 6, 7, 8]],
@@ -133,25 +139,6 @@ large_table = large_table[large_table['area'].isin(['central', 'parietal'])]
 display(times)
 display(large_table)
 
-# %%
-
-
-# def _mk_area(sub_area):
-#     if 'central' in sub_area:
-#         if 'pre' in sub_area:
-#             return 'precentral'
-#         else:
-#             return 'postcentral'
-#     elif 'parietal' in sub_area:
-#         return 'parietal'
-#     elif 'occipital' in sub_area:
-#         return 'occipital'
-#     else:
-#         raise ValueError(f'Unknown sub_area: {sub_area}')
-
-
-# large_table['area'] = large_table['sub_area'].map(_mk_area)
-# display(large_table)
 
 # %%
 dfs = []
@@ -187,7 +174,9 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
                ci=95)  # 置信区间
-g.set_titles(col_template="{col_name}")
+g.set_titles(col_template="{col_name}", fontweight='bold')
+# for i, ax in enumerate(g.axes[0]):
+#     add_top_left_notion(ax, 'abcdefghij'[i])
 plt.show()
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
@@ -196,8 +185,12 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
                ci=95)  # 置信区间
-g.set_titles(col_template="t = {col_name}s")
+g.set_titles(col_template="t = {col_name}s", fontweight='bold')
+# for i, ax in enumerate(g.axes[0]):
+#     add_top_left_notion(ax, 'abcdefghij'[i])
 plt.show()
+
+# %%
 
 # %%
 for evt in df_pivot['evt'].unique():
