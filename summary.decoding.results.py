@@ -18,12 +18,19 @@ Functions:
 
 # %% ---- 2025-11-25 ------------------------
 # Requirements and constants
+import joblib
 import seaborn as sns
+from sklearn import metrics
 from util.easy_import import *
 
+# %%
+OUTPUT_DIR = Path('./data')
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # %% ---- 2025-11-25 ------------------------
 # Function and class
+
+
 def load_accumulating_df():
     dump_files = list(Path('./data/MVPA.accumulate').rglob('*.joblib'))
     dfs = [joblib.load(f) for f in dump_files]
@@ -91,6 +98,121 @@ def load_accumulating_voting_df():
     return df
 
 
+def load_FBCSP_df():
+    data_directories = [
+        Path('./data/MVPA.FBCSP.vote.eeg.fine'),
+        Path('./data/MVPA.FBCSP.vote.meg.fine'),
+        Path('./data/MVPA.FBCSP.all.vote'),
+    ]
+
+    df1s = []
+    df2s = []
+    confusion_matrixes = {}
+
+    for data_directory in data_directories:
+        name = data_directory.name
+        mode = name.split('.')[-2].upper()
+        print(f'Working with {name=}, {mode=}')
+
+        data_files = list(data_directory.rglob('*.dump'))
+        data_files.sort()
+        print(data_files)
+
+        def vote(preds):
+            candidates = {k: 0 for k in [1, 2, 3, 4, 5]}
+            for i, e in enumerate(preds):
+                candidates[e] += 1
+            return sorted(candidates.items(), key=lambda e: e[1])
+
+        data = []
+        yy_true = []
+        yy_pred = []
+        yy_pred_2 = []
+        y_probas_stack = []
+        y_true_stack = []
+        for f in data_files:
+            d = joblib.load(f)
+
+            # d['freqs'] = d['freqs'][:-1]
+            # d.pop(6)
+
+            subject = d['subject_name']
+
+            # y_true shape: samples
+            y_true = d['y_true']
+            y_true_stack.append(y_true)
+
+            # y_preds shape: bands x samples
+            y_preds = [v['y_pred'] for k, v in d.items() if isinstance(k, int)]
+
+            # y_probas shape: bands x samples x classes
+            y_probas = [v['y_proba']
+                        for k, v in d.items() if isinstance(k, int)]
+            y_probas_stack.append(y_probas)
+
+            for i, y_pred in enumerate(y_preds):
+                acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
+                data.append({'subject': subject, 'acc': acc, 'freqIdx': i})
+
+            # Hard vote
+            y_pred = [vote(e)[-1][0] for e in np.array(y_preds).T]
+
+            # Soft vote
+            y_pred_2 = np.argmax(
+                np.prod(np.array(y_probas), axis=0), axis=1) + 1
+
+            conf_mat = metrics.confusion_matrix(
+                y_true=y_true, y_pred=y_pred_2, normalize='true')
+
+            acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
+            acc_2 = metrics.accuracy_score(y_true=y_true, y_pred=y_pred_2)
+            print(acc, acc_2)
+            data.append({'subject': subject, 'acc': acc,
+                        'acc2': acc_2, 'freqIdx': 'vote',
+                         'confusionMatrix': conf_mat})
+
+            yy_true.extend(y_true)
+            yy_pred.extend(y_pred)
+            yy_pred_2.extend(y_pred_2)
+
+        data = pd.DataFrame(data)
+        data['mode'] = mode
+
+        df1 = data.query('freqIdx != "vote"')
+        freqs = [np.mean(f) for f in d['freqs']]
+        df1['freq'] = df1['freqIdx'].map(lambda i: freqs[i])
+
+        df2 = data.query('freqIdx == "vote"')
+        df2['acc'] = df2['acc2']
+
+        df1s.append(df1)
+        df2s.append(df2)
+
+    # Results of single filter band
+    df1 = pd.concat(df1s)
+    df1['accuracy'] = df1['acc']
+    df1['method'] = 'CSP'
+    df1 = df1[['mode', 'subject', 'accuracy', 'method', 'freq']]
+
+    # Results of filter bands
+    df2 = pd.concat(df2s)
+    df2['accuracy'] = df2['acc']
+    df2['method'] = 'FBCSP'
+    df21 = df2[['mode', 'subject', 'accuracy', 'method']]
+    df22 = df2[['mode', 'subject', 'confusionMatrix', 'method']]
+
+    return df1, df21, df22
+
+
+# %%
+dfs, dfm_a, dfm_c = load_FBCSP_df()
+dfs.to_csv(OUTPUT_DIR / 'decoding-on-freq.csv')
+dfm_a.to_csv(OUTPUT_DIR / 'decoding-fbcsp.csv')
+dfm_c.to_csv(OUTPUT_DIR / 'decoding-fbcsp-confusion-matrix.csv')
+display(dfs)
+display(dfm_a)
+display(dfm_c)
+
 # %% ---- 2025-11-25 ------------------------
 # Play ground
 df1 = load_accumulating_df()
@@ -106,17 +228,16 @@ df3['method'] = 'voting'
 display(df3)
 
 # %%
-
-# %%
-
-# %%
-dfc = pd.concat([df1, df2, df3])
+dfc = pd.concat([df1, df2])
+dfc = dfc[['subject', 'mode', 'method', 't', 'accuracy']]
 dfc['mode'] = dfc['mode'].map(lambda e: e.lower())
+dfc.to_csv(OUTPUT_DIR / 'decoding-on-time.csv')
 display(dfc)
+
+# %%
 sns.set_theme(context='paper', style='ticks', font_scale=1)
 sns.lineplot(dfc, x='t', y='accuracy', hue='mode', style='method')
 plt.show()
-
 
 # %% ---- 2025-11-25 ------------------------
 # Pending
