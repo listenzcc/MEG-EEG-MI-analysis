@@ -30,7 +30,7 @@ from util.easy_import import *
 CACHE_DIR = Path(f'./data/cache/')
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-MODE = 'meg'  # 'meg' or 'eeg'
+# MODE = 'meg'  # 'meg' or 'eeg'
 
 # %%
 TASK_TABLE = {
@@ -111,33 +111,41 @@ label_df = load_labels(parc='aparc_sub')
 display(label_df)
 
 # %%
-cached_file = CACHE_DIR.joinpath(f'source_area_erds-{MODE}.pkl')
-if cached_file.exists():
-    obj = joblib.load(cached_file)
-    large_table = obj['df']
-    times = obj['times']
-else:
-    array = []
-    for subject, band, evt in tqdm(product([f'S{i:02d}' for i in range(1, 11)], ['alpha', 'beta'], ['1', '2', '3', '4', '5']), total=10*2*5):
-        stc = read_compute_stc(subject, band, mode=MODE, evt=evt)
-        stc.crop(tmin=0, tmax=1.5)
-        for area, sub_areas in ROI.names.items():
-            for sub_area in sub_areas:
-                label = label_df.loc[f'{sub_area}-lh', "label"]
-                # stc.data shape is (n_vertices, n_times)
-                array.append({
-                    'subject': subject,
-                    'band': band,
-                    'evt': evt,
-                    'area': area,
-                    'sub_area': sub_area,
-                    'mean_erd': np.min(stc.in_label(label).data, axis=0)
-                })
-    times = stc.times
-    large_table = pd.DataFrame(array)
-    joblib.dump({'df': large_table, 'times': times}, cached_file)
+dfs = []
+for mode in ['meg', 'eeg']:
+    cached_file = CACHE_DIR.joinpath(f'source_area_erds-{mode}.pkl')
+    if cached_file.exists():
+        obj = joblib.load(cached_file)
+        df = obj['df']
+        times = obj['times']
+    else:
+        array = []
+        for subject, band, evt in tqdm(product([f'S{i:02d}' for i in range(1, 11)], ['alpha', 'beta'], ['1', '2', '3', '4', '5']), total=10*2*5):
+            stc = read_compute_stc(subject, band, mode=mode, evt=evt)
+            stc.crop(tmin=0, tmax=1.5)
+            for area, sub_areas in ROI.names.items():
+                for sub_area in sub_areas:
+                    label = label_df.loc[f'{sub_area}-lh', "label"]
+                    # stc.data shape is (n_vertices, n_times)
+                    array.append({
+                        'subject': subject,
+                        'band': band,
+                        'evt': evt,
+                        'area': area,
+                        'sub_area': sub_area,
+                        'mean_erd': np.min(stc.in_label(label).data, axis=0)
+                    })
+        times = stc.times
+        df = pd.DataFrame(array)
+        joblib.dump({'df': df, 'times': times}, cached_file)
 
-large_table = large_table[large_table['area'].isin(['central', 'parietal'])]
+    df['mode'] = mode
+    dfs.append(df)
+
+large_table = pd.concat(dfs)
+
+# large_table = large_table[large_table['area'].isin(['central', 'parietal'])]
+large_table = large_table[large_table['area'].isin(['central'])]
 display(times)
 display(large_table)
 
@@ -157,7 +165,7 @@ display(df)
 # %%
 
 # 首先将数据转换为宽格式
-df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't'],  # 保持其他标识列
+df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't', 'mode'],  # 保持其他标识列
                           columns='band',
                           values='erd')
 
@@ -171,7 +179,7 @@ display(df_pivot)
 sns.set_theme(context='paper', style='ticks', font_scale=2)
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
-               hue='area', col='evt',  # 按事件分面
+               hue='mode', col='evt',  # 按事件分面
                markers='.',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
@@ -182,7 +190,7 @@ g.set_titles(col_template="{col_name}", fontweight='bold')
 plt.show()
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
-               hue='area', col='t',  # 按时间分面
+               hue='mode', col='t',  # 按时间分面
                markers='.',
                scatter_kws={'alpha': 0.5},
                height=5, aspect=1,
@@ -193,16 +201,76 @@ g.set_titles(col_template="t = {col_name}s", fontweight='bold')
 plt.show()
 
 # %%
+array = []
+for evt in df_pivot['evt'].unique():
+    for t in df_pivot['t'].unique():
+        for mode in df_pivot['mode'].unique():
+            if evt == 'Rest':
+                continue
+            # [df_pivot['evt'] == evt]
+            df_evt = df_pivot.query(f'evt=="{evt}" & t=={t} & mode=="{mode}"')
+            model = sm.OLS(df_evt['beta'], sm.add_constant(
+                df_evt['alpha'])).fit()
+
+            # 获取关心的四个核心指标
+            R2 = model.rsquared
+            alpha_coef = model.params[1]
+            alpha_pvalue = model.pvalues[1]
+
+            # 残差正态性检验 (Omnibus test)
+            residuals = model.resid
+            omnibus_stat, omnibus_pvalue = stats.normaltest(residuals)
+
+            # 自相关检验 (Durbin-Watson)
+            durbin_watson = sm.stats.stattools.durbin_watson(residuals)
+
+            array.append(
+                (evt, mode, t, R2, alpha_coef, omnibus_pvalue)
+            )
+
+df = pd.DataFrame(array, columns=[
+                  'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])
+display(df)
+
+sns.barplot(df, x='t', y='R2', hue='mode', legend=None)
+plt.show()
 
 # %%
+array = []
 for evt in df_pivot['evt'].unique():
-    for area in df_pivot['area'].unique():
-        # [df_pivot['evt'] == evt]
-        df_evt = df_pivot.query(f'evt=="{evt}" & area=="{area}"')
-        model = sm.OLS(df_evt['beta'], sm.add_constant(df_evt['alpha'])).fit()
-        print(
-            f'{evt=}, {area=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
-        print(model.summary())
+    for t in df_pivot['t'].unique():
+        for mode in df_pivot['mode'].unique():
+            # [df_pivot['evt'] == evt]
+            df_evt = df_pivot.query(f'evt=="{evt}" & t=={t} & mode=="{mode}"')
+            model = sm.OLS(df_evt['beta'], sm.add_constant(
+                df_evt['alpha'])).fit()
+            print(
+                f'{evt=}, {mode=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
+
+            # 获取关心的四个核心指标
+            R2 = model.rsquared
+            alpha_coef = model.params[1]
+            alpha_pvalue = model.pvalues[1]
+
+            # 残差正态性检验 (Omnibus test)
+            residuals = model.resid
+            omnibus_stat, omnibus_pvalue = stats.normaltest(residuals)
+
+            # 自相关检验 (Durbin-Watson)
+            durbin_watson = sm.stats.stattools.durbin_watson(residuals)
+
+            array.append(
+                (evt, mode, t, R2, alpha_coef, omnibus_pvalue)
+            )
+
+            print(model.summary())
+
+df = pd.DataFrame(array, columns=[
+                  'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])
+display(df)
+
+sns.barplot(df, x='evt', y='R2', hue='mode', legend=None)
+plt.show()
 
 
 # %%

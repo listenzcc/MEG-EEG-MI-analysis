@@ -64,7 +64,8 @@ subject_directory = Path(args.subject_dir)
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
-data_directory = Path(f'./data/MVPA.FBCSP.vote/{subject_name}')
+data_directory = Path(
+    f'./data/MVPA.FBCSP.vote.{mode}.fine-0.0-4.0/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # %%

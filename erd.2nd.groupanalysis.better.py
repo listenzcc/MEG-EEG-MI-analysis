@@ -29,7 +29,7 @@ from mne.stats import permutation_t_test
 DATA_DIR = Path('./data.v2/erd.permutation1000')
 OUTPUT_DIR = Path('./data.v2/erd.permutation1000.groupanalysis')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-MODE = 'meg'
+MODE = 'eeg'
 
 # %%
 n_observations = 10  # 10 subjects
@@ -146,7 +146,7 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
     # min, center & max ERDS
     vmin, vmax, vcenter, cmap = -5, 1, 0, 'RdBu_r'
     vmin, vmax, vcenter, cmap = -5, 1, -3, 'RdBu'
-    vmin, vmax, vcenter, cmap = -3, 3, 0, 'RdBu'
+    vmin, vmax, vcenter, cmap = -3, 3, 0, 'RdBu_r'
     cnorm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
     # draw for each channel

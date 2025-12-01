@@ -40,17 +40,17 @@ DATA_DIR = Path('./data/TFR-Source')
 # %% ---- 2025-11-26 ------------------------
 # Play ground
 # 定义分类
-subjects = ['S07', 'average']
-modalities = ['meg']
+subjects = ['S07']  # , 'average']
+modalities = ['eeg', 'meg']
 bands = ['beta', 'alpha']
 tasks = ['1', '2', '3', '4', '5']
-times = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 2.0, 3.0]  # 根据文件名中的时间
+times = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 2.0, 3.0, 4.0, 4.5]  # 根据文件名中的时间
 
 # img.shape is (800, 1600, 3)
 
 for subject, mode, band in tqdm(product(subjects, modalities, bands), total=4):
     print(subject, mode, band)
-    fig, axes = plt.subplots(len(tasks), len(times), figsize=(16, 10))
+    fig, axes = plt.subplots(len(tasks), len(times), figsize=(16, 8))
     for i, t in enumerate(times):
         for j, task in enumerate(tasks):
             ax = axes[j][i]

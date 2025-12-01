@@ -34,7 +34,7 @@ def read_csv(fname):
 
 def fix_column_contents(df):
     df['mode'] = df['mode'].map(lambda e: e.upper())
-    df['mode'] = df['mode'].map(lambda e: 'COMBINE' if e == 'ALL' else e)
+    # df['mode'] = df['mode'].map(lambda e: 'COMBINE' if e == 'ALL' else e)
     df['subject'] = df['subject'].map(lambda e: e[:3].upper())
 
     e = 'confusionMatrix'
@@ -60,7 +60,7 @@ def string_to_numpy(array_str):
 
 
 def add_top_left_notion(ax, notion='a'):
-    ax.text(-0.1, 1.05, f'{notion})', transform=ax.transAxes,
+    ax.text(-0.3, 1.05, f'{notion})', transform=ax.transAxes,
             fontsize=9, va='bottom')
     return
 
@@ -102,15 +102,13 @@ TASK_TABLE = {
 # %%
 df = pd.concat([conf_fbcsp, conf_fbcnet])
 
-# Absolute
-fig, axes = plt.subplots(2, 3, figsize=(12, 7), dpi=200)
+fig, axes = plt.subplots(2, 4, figsize=(15, 6), dpi=200)
 ticklabels = list(TASK_TABLE.values())
+# Absolute
 for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
     for j, method in enumerate(['FBCSP', 'FBCNet']):
         mat = np.mean(df.query(f'mode=="{mode}" & method=="{method}"')[
                       'confusionMatrix'].to_numpy(), axis=0)
-        if i == 0 and j == 0:
-            base_mat = mat
         ax = axes[j][i]
         g = sns.heatmap(mat, vmin=0.1, vmax=0.6, annot=True,
                         cmap='Blues',
@@ -124,40 +122,67 @@ for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
         g.set_xticklabels(g.get_xticklabels(), rotation=0)
         ax.set_title(f'{mode=} | {method=}', fontweight='bold')
         add_top_left_notion(ax, 'abcdefg'[j*3+i])
+
+# Relative
+i = 3
+for j, method in enumerate(['FBCSP', 'FBCNet']):
+    mat0 = np.mean(df.query(f'mode=="EEG" & method=="{method}"')[
+        'confusionMatrix'].to_numpy(), axis=0)
+    mat1 = np.mean(df.query(f'mode=="COMBINE" & method=="{method}"')[
+        'confusionMatrix'].to_numpy(), axis=0)
+
+    ax = axes[j, i]
+    g = sns.heatmap(mat1-mat0,
+                    vmin=-0.2, vmax=0.2, annot=True,
+                    cmap='RdBu',
+                    xticklabels=ticklabels if j == 1 else False,
+                    yticklabels=ticklabels if i == 0 else False,
+                    fmt='.2f',
+                    annot_kws={'color': 'white'},
+                    cbar=True,
+                    cbar_kws={"shrink": 0.7},
+                    ax=ax)
+    g.set_xticklabels(g.get_xticklabels(), rotation=0)
+    ax.set_title(f'COMBINE - EEG | {method=}', fontweight='bold')
+    add_top_left_notion(ax, 'abcdefg'[j*3+i])
+
+
 plt.tight_layout()
 fig.savefig(OUTPUT_DIR / 'confusion-matrix.png')
 plt.show()
 
+# %%
+
 # Relative
-fig, axes = plt.subplots(2, 3, figsize=(12, 7), dpi=200)
-ticklabels = list(TASK_TABLE.values())
-for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
-    for j, method in enumerate(['FBCSP', 'FBCNet']):
-        mat = np.mean(df.query(f'mode=="{mode}" & method=="{method}"')[
-                      'confusionMatrix'].to_numpy(), axis=0)
-        mat -= base_mat
-        ax = axes[j][i]
-        g = sns.heatmap(mat, vmin=-0.2, vmax=0.2, annot=True,
-                        cmap='RdBu',
-                        xticklabels=ticklabels if j == 1 else False,
-                        yticklabels=ticklabels if i == 0 else False,
-                        fmt='.2f',
-                        annot_kws={'color': 'gray' if i ==
-                                   0 and j == 0 else 'white'},
-                        cbar=True,
-                        cbar_kws={"shrink": 0.7},
-                        ax=ax)
-        cbar = ax.collections[0].colorbar
-        cbar.set_ticks([-0.2, 0, 0.2])
-        g.set_xticklabels(g.get_xticklabels(), rotation=0)
-        ax.set_title(f'{mode=} | {method=}', fontweight='bold')
-        add_top_left_notion(ax, 'abcdefg'[j*3+i])
-plt.tight_layout()
-fig.savefig(OUTPUT_DIR / 'confusion-matrix-1.png')
-plt.show()
+# fig, axes = plt.subplots(2, 3, figsize=(12, 7), dpi=200)
+# ticklabels = list(TASK_TABLE.values())
+# for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
+#     for j, method in enumerate(['FBCSP', 'FBCNet']):
+#         mat = np.mean(df.query(f'mode=="{mode}" & method=="{method}"')[
+#                       'confusionMatrix'].to_numpy(), axis=0)
+#         mat -= base_mat
+#         ax = axes[j][i]
+#         g = sns.heatmap(mat, vmin=-0.2, vmax=0.2, annot=True,
+#                         cmap='RdBu',
+#                         xticklabels=ticklabels if j == 1 else False,
+#                         yticklabels=ticklabels if i == 0 else False,
+#                         fmt='.2f',
+#                         annot_kws={'color': 'gray' if i ==
+#                                    0 and j == 0 else 'white'},
+#                         cbar=True,
+#                         cbar_kws={"shrink": 0.7},
+#                         ax=ax)
+#         cbar = ax.collections[0].colorbar
+#         cbar.set_ticks([-0.2, 0, 0.2])
+#         g.set_xticklabels(g.get_xticklabels(), rotation=0)
+#         ax.set_title(f'{mode=} | {method=}', fontweight='bold')
+#         add_top_left_notion(ax, 'abcdefg'[j*3+i])
+# plt.tight_layout()
+# fig.savefig(OUTPUT_DIR / 'confusion-matrix-1.png')
+# plt.show()
 
 # %%
-fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
 df = pd.concat([acc_fbcnet, acc_fbcsp])
 ax = axes[0]
@@ -183,14 +208,6 @@ ax.set_yticks([0.2, 0.3, 0.4, 0.5])
 ax.legend(fontsize='small')
 ax.set_title('Accuracy with LR across times', fontweight='bold')
 
-ax = axes[2]
-sns.lineplot(acc_freq, x='freq', hue='mode', y='accuracy', ax=ax)
-ax.axhline(y=0.2, linestyle=':', color='black')
-ax.set_ylim([0.15, 0.55])
-ax.set_yticks([0.2, 0.3, 0.4, 0.5])
-ax.legend(fontsize='small')
-ax.set_title('Accuracy with CSP across frequencies', fontweight='bold')
-
 for i, ax in enumerate(axes):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -208,24 +225,8 @@ print("method 水平:", df['method'].unique())
 print("subject 数量:", df['subject'].nunique())
 
 
-def fisher_transform(accuracy_data):
-    """
-    Fisher Z 变换 - 适用于比例数据 (0-1 范围的准确率)
-    """
-    # 确保数据在 (0,1) 范围内，避免边界值
-    epsilon = 1e-10
-    accuracy_clipped = np.clip(accuracy_data, epsilon, 1 - epsilon)
-
-    # Fisher Z 变换
-    z_scores = 0.5 * np.log((1 + accuracy_clipped) / (1 - accuracy_clipped))
-    return z_scores
-
-
-df['accuracy_z'] = df['accuracy'].map(fisher_transform)
-display(df)
-
 # 使用 pingouin 进行双因素重复测量方差分析
-aov = pg.rm_anova(data=df, dv='accuracy_z', within=['mode', 'method'],
+aov = pg.rm_anova(data=df, dv='accuracy', within=['mode', 'method'],
                   subject='subject', detailed=True)
 print("双因素重复测量方差分析结果:")
 print(aov)
@@ -267,7 +268,7 @@ def calculate_cohens_d(data, dv, within_factors, subject):
 
 # 计算效果量
 effect_sizes = calculate_cohens_d(
-    df, 'accuracy_z', ['mode', 'method'], 'subject')
+    df, 'accuracy', ['mode', 'method'], 'subject')
 print("\nCohen's d 效果量:")
 for key, value in effect_sizes.items():
     print(f"{key}: {value:.3f}")

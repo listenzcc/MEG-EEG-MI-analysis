@@ -182,7 +182,7 @@ def plot_erd_topomap(df, Opt):
 
             im, cn = mne.viz.plot_topomap(
                 _array, Opt.evoked.info, image_interp='cubic',
-                contours=[-3, -1, 0],
+                # contours=[-3, -1, 0],
                 mask=mask,
                 mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
                                  linewidth=0, markersize=4),
@@ -190,9 +190,10 @@ def plot_erd_topomap(df, Opt):
                 sphere=(
                     0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
                 extrapolate='local',
-                cnorm=Opt.norm, cmap=Opt.cmap, size=4, axes=ax, show=False)
+                # cnorm=Opt.norm,
+                cmap=Opt.cmap, size=4, axes=ax, show=False)
 
-            ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
+            # ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
 
             if i_evt == 0:
                 add_top_left_notion(ax, 'abcdefg'[i_band])
@@ -228,7 +229,7 @@ class BasicOpt:
     vmin = -5
     vmax = 0
     vcenter = -3
-    cmap = 'RdBu'
+    cmap = 'RdBu_r'
     norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
     scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 

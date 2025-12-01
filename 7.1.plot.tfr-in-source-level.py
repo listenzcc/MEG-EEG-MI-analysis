@@ -78,8 +78,11 @@ def screenshot(subject, band, mode, evt):
         stc = read_compute_stc(subject, band, mode, evt, tmin, tmax)
         clim = {'kind': 'value', 'pos_lims': (2, 3, 5)}
 
-    for t in tqdm([0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3]):
+    for t in [5]:  # tqdm([0, 0.2, 0.4, 0.6, 0.8, 1, 2, 3, 4, 5]):
         title = f'{subject}-{mode}-{evt}-{band}-{t:0.1f}'
+        if t == 5:
+            stc.data *= 0
+
         brain = stc.plot(
             initial_time=t,
             hemi="split",
@@ -123,7 +126,7 @@ def display(subject, band, mode, evt):
         colormap='RdBu',
         clim=clim,
         size=(1600, 800),
-        colorbar=False,
+        colorbar=True,
         title=title,
         brain_kwargs=brain_kwargs,
     )
@@ -145,10 +148,13 @@ mode = 'meg'
 evt = '1'  # '1' ~ '5'
 tmin, tmax = -1, 5
 
+mode = 'meg'
+subject = 'S07'
+
 # ! Screenshot all combinations
-for band in ['alpha', 'beta']:
-    for evt in ['1', '2', '3', '4', '5']:
-        screenshot(subject, band, mode, evt)
+# for band in ['alpha', 'beta']:
+#     for evt in ['1', '2', '3', '4', '5']:
+#         screenshot(subject, band, mode, evt)
 
 while True:
     prompt = 'Example: $subject $band $mode $evt (Ctrl+c to escape) >>'
