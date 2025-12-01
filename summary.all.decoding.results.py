@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-11-26 ------------------------
 # Requirements and constants
+import pingouin as pg
 from util.easy_import import *
 
 OUTPUT_DIR = Path('./data')
@@ -201,7 +202,80 @@ plt.show()
 
 # %% ---- 2025-11-26 ------------------------
 # Pending
+# 检查数据结构和因子水平
+print("mode 水平:", df['mode'].unique())
+print("method 水平:", df['method'].unique())
+print("subject 数量:", df['subject'].nunique())
 
+
+def fisher_transform(accuracy_data):
+    """
+    Fisher Z 变换 - 适用于比例数据 (0-1 范围的准确率)
+    """
+    # 确保数据在 (0,1) 范围内，避免边界值
+    epsilon = 1e-10
+    accuracy_clipped = np.clip(accuracy_data, epsilon, 1 - epsilon)
+
+    # Fisher Z 变换
+    z_scores = 0.5 * np.log((1 + accuracy_clipped) / (1 - accuracy_clipped))
+    return z_scores
+
+
+df['accuracy_z'] = df['accuracy'].map(fisher_transform)
+display(df)
+
+# 使用 pingouin 进行双因素重复测量方差分析
+aov = pg.rm_anova(data=df, dv='accuracy_z', within=['mode', 'method'],
+                  subject='subject', detailed=True)
+print("双因素重复测量方差分析结果:")
+print(aov)
+
+# 方法1：从ANOVA结果中获取偏eta平方
+print("效果量 (偏η²):")
+print(aov[['Source', 'ng2']])
+
+# 方法2：手动计算效果量（Cohen's d）
+
+
+def calculate_cohens_d(data, dv, within_factors, subject):
+    """计算配对样本的Cohen's d"""
+    effect_sizes = {}
+
+    for factor in within_factors:
+        levels = data[factor].unique()
+        for i in range(len(levels)):
+            for j in range(i+1, len(levels)):
+                # 获取配对数据
+                subset1 = data[data[factor] == levels[i]]
+                subset2 = data[data[factor] == levels[j]]
+
+                # 确保按subject匹配
+                merged = pd.merge(subset1, subset2,
+                                  on='subject', suffixes=('_1', '_2'))
+
+                # 计算配对差异
+                diff = merged[f'{dv}_1'] - merged[f'{dv}_2']
+
+                # 计算Cohen's d
+                d = np.mean(diff) / np.std(diff, ddof=1)
+
+                key = f"{factor}: {levels[i]} vs {levels[j]}"
+                effect_sizes[key] = d
+
+    return effect_sizes
+
+
+# 计算效果量
+effect_sizes = calculate_cohens_d(
+    df, 'accuracy_z', ['mode', 'method'], 'subject')
+print("\nCohen's d 效果量:")
+for key, value in effect_sizes.items():
+    print(f"{key}: {value:.3f}")
 
 # %% ---- 2025-11-26 ------------------------
 # Pending
+
+
+# %%
+
+# %%

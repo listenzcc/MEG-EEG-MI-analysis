@@ -30,6 +30,8 @@ from util.easy_import import *
 CACHE_DIR = Path(f'./data/cache/')
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+MODE = 'meg'  # 'meg' or 'eeg'
+
 # %%
 TASK_TABLE = {
     '1': 'Hand',
@@ -109,7 +111,7 @@ label_df = load_labels(parc='aparc_sub')
 display(label_df)
 
 # %%
-cached_file = CACHE_DIR.joinpath('source_area_erds.pkl')
+cached_file = CACHE_DIR.joinpath(f'source_area_erds-{MODE}.pkl')
 if cached_file.exists():
     obj = joblib.load(cached_file)
     large_table = obj['df']
@@ -117,7 +119,7 @@ if cached_file.exists():
 else:
     array = []
     for subject, band, evt in tqdm(product([f'S{i:02d}' for i in range(1, 11)], ['alpha', 'beta'], ['1', '2', '3', '4', '5']), total=10*2*5):
-        stc = read_compute_stc(subject, band, mode='meg', evt=evt)
+        stc = read_compute_stc(subject, band, mode=MODE, evt=evt)
         stc.crop(tmin=0, tmax=1.5)
         for area, sub_areas in ROI.names.items():
             for sub_area in sub_areas:
@@ -204,10 +206,6 @@ for evt in df_pivot['evt'].unique():
 
 
 # %%
-model.params
-
-# %%
-
 exit(0)
 
 # %%
