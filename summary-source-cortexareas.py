@@ -26,6 +26,8 @@ from scipy import stats
 from itertools import product
 from util.easy_import import *
 
+sns.set_theme(context='paper', style='ticks', font_scale=2)
+
 # %%
 CACHE_DIR = Path(f'./data/cache/')
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -149,6 +151,27 @@ large_table = large_table[large_table['area'].isin(['central'])]
 display(times)
 display(large_table)
 
+# %%
+group = large_table.groupby(['band', 'evt', 'area', 'sub_area', 'mode'])
+
+a = group.agg(lambda e: np.stack(e, axis=0)).reset_index()
+a['mean_erd'] = a['mean_erd'].map(lambda e: np.mean(e, axis=0))
+a = a[['band', 'evt', 'area', 'sub_area', 'mode', 'mean_erd']]
+b = []
+for i, t in tqdm(enumerate(times), total=len(times)):
+    c = a.copy()
+    c['mean_erd'] = c['mean_erd'].map(lambda e: e[i])
+    c['t'] = t
+    b.append(c)
+b = pd.concat(b)
+
+display(b)
+
+# %%
+g = sns.FacetGrid(b, col="band", row="mode", aspect=1)
+g.map_dataframe(sns.lineplot, x='t', y='mean_erd', hue='evt')
+g.add_legend()
+plt.show()
 
 # %%
 dfs = []
@@ -161,6 +184,46 @@ for t in tqdm(ts):
     dfs.append(df)
 df = pd.concat(dfs)
 display(df)
+
+# %%
+df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't', 'band'],  # 保持其他标识列
+                          columns='mode',
+                          values='erd')
+
+# 重置索引
+df_pivot = df_pivot.reset_index()
+df_pivot['evt'] = df_pivot['evt'].map(lambda e: TASK_TABLE[e])
+display(df_pivot)
+
+# %%
+
+g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
+               hue='band', col='evt',  # 按事件分面
+               markers='.',
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
+g.set_titles(col_template="{col_name}", fontweight='bold')
+plt.show()
+
+g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
+               hue='band', col='t',  # 按时间分面
+               markers='.',
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
+g.set_titles(col_template="t = {col_name}s", fontweight='bold')
+plt.show()
+
+# %%
+_df = df_pivot.query('evt != "Rest"')
+g = sns.lmplot(data=_df, x='eeg', y='meg', hue='band',
+               col='t',
+               row='sub_area',
+               markers='.',
+               scatter_kws={'alpha': 0.5}, height=5, aspect=1, ci=95)  # 置信区间
+plt.show()
+
 
 # %%
 
@@ -185,8 +248,6 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                height=5, aspect=1,
                ci=95)  # 置信区间
 g.set_titles(col_template="{col_name}", fontweight='bold')
-# for i, ax in enumerate(g.axes[0]):
-#     add_top_left_notion(ax, 'abcdefghij'[i])
 plt.show()
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
@@ -196,8 +257,6 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                height=5, aspect=1,
                ci=95)  # 置信区间
 g.set_titles(col_template="t = {col_name}s", fontweight='bold')
-# for i, ax in enumerate(g.axes[0]):
-#     add_top_left_notion(ax, 'abcdefghij'[i])
 plt.show()
 
 # %%

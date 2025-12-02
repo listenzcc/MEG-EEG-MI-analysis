@@ -71,13 +71,23 @@ def add_top_left_notion(ax, notion='a'):
 # %%
 acc_fbcsp = read_csv('./data/decoding-fbcsp.csv')
 acc_fbcnet = read_csv('../MEG-EEG-MI-fbcnet/data/decoding-fbcnet.csv')
+acc_fbcnet_time = read_csv(
+    '../MEG-EEG-MI-fbcnet/data/decoding-fbcnet-by-times.csv')
 display(acc_fbcsp)
 display(acc_fbcnet)
+display(acc_fbcnet_time)
 
 # %%
 acc_freq = read_csv('./data/decoding-on-freq.csv')
 acc_time = read_csv('./data/decoding-on-time.csv')
 display(acc_freq)
+display(acc_time)
+
+# %%
+# Combine acc_fbcnet_time and acc_time
+acc_fbcnet_time['t'] = acc_fbcnet_time['tmax']
+acc_time = pd.concat([acc_time, acc_fbcnet_time])
+acc_time = acc_time[acc_time['method'].map(lambda e: e != 'accumulating')]
 display(acc_time)
 
 # %%

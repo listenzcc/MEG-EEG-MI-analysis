@@ -1,5 +1,5 @@
 """
-File: plot.sensors.better.py
+File: plot.sensors.better.gray.py
 Author: Chuncheng Zhang
 Date: 2025-11-03
 Copyright & Email: chuncheng.zhang@ia.ac.cn
@@ -68,9 +68,10 @@ kwargs.update({
         [i for i, e in enumerate(md.eeg_epochs.ch_names)
          if e not in 'C3 C4 Cz'],
     ],
-    'cmap': ListedColormap(['red', 'gray']),
+    'cmap': ListedColormap(['gray', 'gray']),
     'title': 'EEG sensors layout (top view)',
-    'to_sphere': True
+    'to_sphere': True,
+    'linewidth': 0
 })
 
 ax = axes[1]
@@ -86,7 +87,7 @@ ch_groups = [[] for _ in range(len(unique_area_marks)+1)]
 for i, name in enumerate(md.meg_epochs.ch_names):
     if not len(name) == 5:
         continue
-    if name in ['MLC42', 'MZC03', 'MRC42']:
+    if False and name in ['MLC42', 'MZC03', 'MRC42']:
         j = 0
     else:
         j = unique_area_marks.index(name[2]) + 1
@@ -99,7 +100,8 @@ kwargs.update({
     'ch_groups': ch_groups,
     'cmap': cm,
     'title': 'MEG sensors layout (top view)',
-    'to_sphere': True
+    'to_sphere': True,
+    'linewidth': 0
 })
 ax = axes[0]
 mne.viz.plot_sensors(md.meg_epochs.info, axes=ax, **kwargs)
