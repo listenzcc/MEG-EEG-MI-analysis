@@ -111,6 +111,7 @@ TASK_TABLE = {
 
 # %%
 df = pd.concat([conf_fbcsp, conf_fbcnet])
+df.to_csv(OUTPUT_DIR.joinpath('confusion-matrix.csv'))
 
 fig, axes = plt.subplots(2, 4, figsize=(15, 6), dpi=200)
 ticklabels = list(TASK_TABLE.values())
@@ -195,6 +196,8 @@ plt.show()
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
 df = pd.concat([acc_fbcnet, acc_fbcsp])
+df.to_csv(OUTPUT_DIR.joinpath('accuracy.csv'))
+acc_time.to_csv(OUTPUT_DIR.joinpath('accuracy-time.csv'))
 ax = axes[0]
 sns.barplot(df, x='method', hue='mode', y='accuracy',
             order=['FBCSP', 'FBCNet'],

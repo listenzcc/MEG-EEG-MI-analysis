@@ -168,10 +168,10 @@ b = pd.concat(b)
 display(b)
 
 # %%
-g = sns.FacetGrid(b, col="band", row="mode", aspect=1)
-g.map_dataframe(sns.lineplot, x='t', y='mean_erd', hue='evt')
-g.add_legend()
-plt.show()
+# g = sns.FacetGrid(b, col="band", row="mode", aspect=1)
+# g.map_dataframe(sns.lineplot, x='t', y='mean_erd', hue='evt')
+# g.add_legend()
+# plt.show()
 
 # %%
 dfs = []
@@ -213,6 +213,19 @@ g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
                height=5, aspect=1,
                ci=95)  # 置信区间
 g.set_titles(col_template="t = {col_name}s", fontweight='bold')
+plt.show()
+
+df_pivot1 = df_pivot.copy()
+df_pivot1['evt'] = df_pivot['evt'].map(
+    lambda e: 'Rest' if e == 'Rest' else 'Task')
+
+g = sns.lmplot(data=df_pivot1, x='eeg', y='meg',
+               hue='band', col='evt',  # 按事件分面
+               markers='.',
+               scatter_kws={'alpha': 0.5},
+               height=5, aspect=1,
+               ci=95)  # 置信区间
+g.set_titles(col_template="{col_name}", fontweight='bold')
 plt.show()
 
 # %%

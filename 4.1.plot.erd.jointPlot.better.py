@@ -2,6 +2,7 @@
 
 # In[1]:
 
+from matplotlib.colors import Normalize
 from util.bands import Bands
 from util.read_example_raw import md
 from util.easy_import import *
@@ -36,6 +37,26 @@ def read_tfr(path: Path):
     return tfr
 
 
+def subtract_baseline(df):
+    # 方法1：使用分组和变换
+    def subtract_negative_mean(group):
+        # 计算 t<0 的均值
+        negative_mean = group.loc[group['time'] < 0, 'value'].mean()
+
+        # 如果 t<0 的数据不存在，返回原值
+        if pd.isna(negative_mean):
+            return group['value']
+
+        # 只对 t>0 的值做减法，t<0 的值保持不变
+        return group.apply(lambda row: row['value'] - negative_mean if row['time'] > 0 else row['value'], axis=1)
+
+    # 按分组键分组
+    group_keys = ['freq', 'channel', 'ch_type', 'name', 'evt']
+    df['value'] = df.groupby(group_keys, group_keys=False).apply(
+        subtract_negative_mean).reset_index(drop=True)
+    return df
+
+
 def to_df(path: Path, channels: list = []):
     '''
     Read TFR from path and pick channels.
@@ -53,6 +74,9 @@ def to_df(path: Path, channels: list = []):
     df_raw = tfr.to_data_frame(long_format=True)
     df_raw['name'] = subject_name
     df_raw['evt'] = dct['evt']
+
+    # df_raw = subtract_baseline(df_raw)
+    display(df_raw)
 
     df_bands = []
     for band_name in ['alpha', 'beta']:
@@ -160,8 +184,10 @@ def plot_erd_topomap(df, Opt):
             _df = df.query(' & '.join(query))
 
             # Convert into dB
-            _averaged_df = 10 * \
-                _df.groupby('channel', observed=True)['value'].mean()
+            _averaged_df = 20 * _df.groupby('channel', observed=True)[
+                'value'].mean()
+
+            _averaged_df -= np.max(_averaged_df)
 
             mask = None
 
@@ -180,18 +206,31 @@ def plot_erd_topomap(df, Opt):
 
             ax = axes[i_band, i_evt]
 
+            if band_name.lower() == 'alpha' and Opt.mode.lower() == 'meg':
+                cnorm = Normalize(vmin=-3.5, vmax=1)
+
+            if band_name.lower() == 'beta' and Opt.mode.lower() == 'meg':
+                cnorm = Normalize(vmin=-2, vmax=1)
+
+            if band_name.lower() == 'alpha' and Opt.mode.lower() == 'eeg':
+                cnorm = Normalize(vmin=-3, vmax=1)
+
+            if band_name.lower() == 'beta' and Opt.mode.lower() == 'eeg':
+                cnorm = Normalize(vmin=-2, vmax=1)
+
             im, cn = mne.viz.plot_topomap(
-                _array, Opt.evoked.info, image_interp='cubic',
+                _array, Opt.evoked.info,
+                image_interp='cubic',
                 # contours=[-3, -1, 0],
-                mask=mask,
-                mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
-                                 linewidth=0, markersize=4),
+                # mask=mask,
+                # mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
+                #                  linewidth=0, markersize=4),
                 #   sphere=(0, 0, 0, 0.1),
-                sphere=(
-                    0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
-                extrapolate='local',
-                # cnorm=Opt.norm,
-                cmap=Opt.cmap, size=4, axes=ax, show=False)
+                # sphere=(
+                #     0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
+                extrapolate='box',  # 'local',
+                cnorm=cnorm,
+                size=4, axes=ax, show=False)
 
             # ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
 
@@ -222,15 +261,17 @@ def add_top_left_notion(ax, notion='a'):
             fontsize=12, va='bottom')
     return
 
+
 # In[ ]:
 
 
 class BasicOpt:
-    vmin = -5
+    vmin = -3
     vmax = 0
     vcenter = -3
     cmap = 'RdBu_r'
-    norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    # TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+    norm = Normalize(vmin=vmin, vmax=vmax)
     scatter_kwargs = dict(cmap=cmap, marker='s', norm=norm)
 
 

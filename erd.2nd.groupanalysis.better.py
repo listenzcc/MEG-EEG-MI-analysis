@@ -72,7 +72,7 @@ def add_top_left_notion(ax, notion='a'):
 n_channels = 3
 n_rows = 5
 fig, axes = plt.subplots(
-    n_rows+1, n_channels, figsize=(12, 12),  # (n_channels*2, 3*n_rows),
+    n_rows+1, n_channels, figsize=(8, 16),  # (n_channels*2, 3*n_rows),
     gridspec_kw={"height_ratios": [10]*n_rows + [1]}
 )
 
@@ -147,6 +147,8 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
     vmin, vmax, vcenter, cmap = -5, 1, 0, 'RdBu_r'
     vmin, vmax, vcenter, cmap = -5, 1, -3, 'RdBu'
     vmin, vmax, vcenter, cmap = -3, 3, 0, 'RdBu_r'
+    vmin, vmax, vcenter, cmap = -3.5, 3.5, 0, 'RdBu_r'
+    # vmin, vmax, vcenter, cmap = -2, 2, 0, 'RdBu_r'
     cnorm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
     # draw for each channel
@@ -172,6 +174,14 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
 
         ax.set_title(tfr.ch_names[i_ch], fontsize=10, fontweight='bold')
         ax.axvline(0, linewidth=1, color="black", linestyle=":")
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        # Set bold globally for tick labels
+        # Make them bold by accessing each label
+        # for label in ax.get_xticklabels():
+        #     label.set_fontweight('bold')
+
+        # for label in ax.get_yticklabels():
+        #     label.set_fontweight('bold')
 
         if i_ch != 0:
             ax.set_ylabel("")
