@@ -27,6 +27,35 @@ bands = Bands()
 # In[2]:
 
 
+def mk_info():
+    # 你的通道列表
+    ch_names = ['F5', 'F3', 'F1', 'Fz', 'F2', 'F4', 'F6', 'FC5', 'FC3', 'FC1', 'FCz',
+                'FC2', 'FC4', 'FC6', 'C5', 'C3', 'C1', 'Cz', 'C2', 'C4', 'C6', 'CP5',
+                'CP3', 'CP1', 'CPz', 'CP2', 'CP4', 'CP6', 'P5', 'P3', 'P1', 'Pz', 'P2', 'P4', 'P6']
+
+    # 获取标准位置（不通过完整的蒙太奇）
+    # 先创建一个临时 info 获取标准位置
+    temp_info = mne.create_info(ch_names=ch_names, sfreq=250., ch_types='eeg')
+    temp_info.set_montage('standard_1020')
+
+    # 提取位置
+    ch_pos = temp_info.get_montage().get_positions()['ch_pos']
+
+    # 向后移动所有电极 0.2cm
+    for ch in ch_pos:
+        ch_pos[ch] = ch_pos[ch].copy()  # 创建副本
+        ch_pos[ch][1] -= 0.03  # Y轴减小 0.02m
+
+    # 创建新的蒙太奇
+    new_montage = mne.channels.make_dig_montage(
+        ch_pos=ch_pos, coord_frame='head')
+
+    # 创建最终的 info
+    info = mne.create_info(ch_names=ch_names, sfreq=250., ch_types='eeg')
+    info.set_montage(new_montage)
+    return info
+
+
 def find_tfr_files(pattern: str):
     found = list(data_directory.rglob(pattern))
     return found
@@ -164,6 +193,47 @@ def add_top_left_notion(ax, notion='a'):
     return
 
 
+def cut_red_end_of_rdbu_r(cut_points=10):
+    """
+    截断 RdBu_r colormap 的红色端
+
+    参数:
+    ----------
+    cut_points : int
+        要截断的红色端点数（从最红的颜色开始）
+
+    返回:
+    ----------
+    cmap : LinearSegmentedColormap
+        截断后的 colormap
+    """
+    # 获取原始的 RdBu_r colormap
+    rdbu_r = plt.cm.RdBu_r
+
+    # 获取完整的 256 个颜色
+    original_colors = rdbu_r(np.linspace(0, 1, 256))
+
+    # 计算要保留的颜色数量
+    n_colors = 256 - cut_points
+
+    # 截断红色端：保留从 0 到 (1 - cut_points/256) 的部分
+    # 这相当于去掉了最红的 cut_points 个颜色
+    keep_fraction = n_colors / 256
+
+    # 获取截断后的颜色
+    truncated_colors = original_colors[:n_colors]
+
+    # 创建新的 colormap
+    from matplotlib.colors import LinearSegmentedColormap
+    new_cmap = LinearSegmentedColormap.from_list(
+        f'RdBu_r_truncated_{cut_points}',
+        truncated_colors,
+        N=n_colors
+    )
+
+    return new_cmap
+
+
 def plot_erd_topomap(df, Opt):
     evts = sorted(df['evt'].unique())
     band_names = sorted(df['freq'].unique())
@@ -217,26 +287,47 @@ def plot_erd_topomap(df, Opt):
             ax = axes[i_band, i_evt]
 
             if band_name.lower() == 'alpha' and Opt.mode.lower() == 'meg':
-                cnorm = Normalize(vmin=-3.5, vmax=1)
+                cnorm = Normalize(vmin=-3.5, vmax=0)
 
             if band_name.lower() == 'beta' and Opt.mode.lower() == 'meg':
-                cnorm = Normalize(vmin=-2, vmax=1)
+                cnorm = Normalize(vmin=-2, vmax=0)
 
             if band_name.lower() == 'alpha' and Opt.mode.lower() == 'eeg':
-                cnorm = Normalize(vmin=-3, vmax=1)
+                cnorm = Normalize(vmin=-3, vmax=0)
 
             if band_name.lower() == 'beta' and Opt.mode.lower() == 'eeg':
-                cnorm = Normalize(vmin=-2, vmax=1)
+                cnorm = Normalize(vmin=-2, vmax=0)
+
+            if Opt.mode.lower() == 'eeg':
+                # # Your channel names
+                # ch_names = ['F5', 'F3', 'F1', 'Fz', 'F2', 'F4', 'F6', 'FC5', 'FC3', 'FC1', 'FCz',
+                #             'FC2', 'FC4', 'FC6', 'C5', 'C3', 'C1', 'Cz', 'C2', 'C4', 'C6', 'CP5',
+                #             'CP3', 'CP1', 'CPz', 'CP2', 'CP4', 'CP6', 'P5', 'P3', 'P1', 'Pz', 'P2', 'P4', 'P6']
+
+                # # Create a simple info structure
+                # info = mne.create_info(ch_names=ch_names,
+                #                        sfreq=250., ch_types='eeg')
+
+                # # Get a standard 10-20 montage
+                # montage = mne.channels.make_standard_montage('standard_1020')
+                # montage = mk_montage()
+                # info.set_montage(montage)
+                info = mk_info()
 
             im, cn = mne.viz.plot_topomap(
-                _array, Opt.evoked.info,
+                _array,
+                pos=info if Opt.mode.lower() == 'eeg' else Opt.evoked.info,
                 image_interp='cubic',
-                sensors=False,
+                # sensors=False,
                 extrapolate='head',  # 'head', 'box', 'local',
                 # outlines=None,
                 cnorm=cnorm,
+                # cmap='RdBu_r',  # create_soft_rdbu(),
+                cmap=cut_red_end_of_rdbu_r(50),
                 size=4,
-                axes=ax, show=False
+                axes=ax,
+                show=False,
+                sphere=[0, 0, 0, 0.2] if Opt.mode.lower() == 'meg' else None
                 # contours=[-3, -1, 0],
                 # mask=mask,
                 # mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
@@ -244,7 +335,6 @@ def plot_erd_topomap(df, Opt):
                 #   sphere=(0, 0, 0, 0.1),
                 # sphere=(
                 #     0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
-                # extrapolate='local',
             )
 
             # ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
@@ -336,6 +426,8 @@ for Opt in [MEG_Opt, EEG_Opt]:
 
     print(f'Saved {Opt.mode} to {Opt.pdf_path}')
 
+
+# %%
 
 # %%
 
