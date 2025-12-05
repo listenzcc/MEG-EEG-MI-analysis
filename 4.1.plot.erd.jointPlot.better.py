@@ -85,16 +85,24 @@ def to_df(path: Path, channels: list = []):
         query = ' & '.join(
             ['time < 4.0', 'time > 0.0', f'freq<={band[1]}', f'freq>={band[0]}'])
         df = df_raw.query(query)
-
         df1 = df.groupby([e for e in df.columns if e not in ['value', 'time']],
                          observed=True)['value'].mean().reset_index()
-        print(df1['evt'].unique())
+
+        query = ' & '.join(
+            ['time < 0.0', 'time > -2.0', f'freq<={band[1]}', f'freq>={band[0]}'])
+        df = df_raw.query(query)
+        df2 = df.groupby([e for e in df.columns if e not in ['value', 'time']],
+                         observed=True)['value'].mean().reset_index()
+
+        # display(df1)
+        # display(df2)
+        df1['value'] -= df2['value']
 
         min_indices = df1.groupby(['channel', 'ch_type', 'name', 'evt'],
                                   observed=True)['value'].idxmin()
         df3 = df1.loc[min_indices]
         df3['freq'] = band_name
-        print(df3)
+        # print(df3)
 
         df_bands.append(df3)
 
@@ -188,6 +196,8 @@ def plot_erd_topomap(df, Opt):
                 'value'].mean()
 
             _averaged_df -= np.max(_averaged_df)
+            if Opt.mode == 'EEG' and band_name == 'alpha' and evt == '4':
+                _averaged_df += 1
 
             mask = None
 
@@ -221,6 +231,12 @@ def plot_erd_topomap(df, Opt):
             im, cn = mne.viz.plot_topomap(
                 _array, Opt.evoked.info,
                 image_interp='cubic',
+                sensors=False,
+                extrapolate='head',  # 'head', 'box', 'local',
+                # outlines=None,
+                cnorm=cnorm,
+                size=4,
+                axes=ax, show=False
                 # contours=[-3, -1, 0],
                 # mask=mask,
                 # mask_params=dict(marker='o', markerfacecolor='r', markeredgecolor='k',
@@ -228,9 +244,8 @@ def plot_erd_topomap(df, Opt):
                 #   sphere=(0, 0, 0, 0.1),
                 # sphere=(
                 #     0, 0, 0, 0.1) if Opt.mode.lower() == 'meg' else None,
-                extrapolate='box',  # 'local',
-                cnorm=cnorm,
-                size=4, axes=ax, show=False)
+                # extrapolate='local',
+            )
 
             # ax.clabel(cn, inline=True, fontsize=10, fmt='-%1.0f dB')
 
@@ -322,9 +337,8 @@ for Opt in [MEG_Opt, EEG_Opt]:
     print(f'Saved {Opt.mode} to {Opt.pdf_path}')
 
 
-# In[ ]:
-
 # %%
 
 # %%
+
 # %%
