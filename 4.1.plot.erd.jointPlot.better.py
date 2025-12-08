@@ -246,7 +246,7 @@ def plot_erd_topomap(df, Opt):
         figsize=(3*cols, 6),
         gridspec_kw={
             "width_ratios": [10] * cols + [1]
-        })
+        }, dpi=300)
 
     if Opt.mode == 'MEG':
         Opt.evoked.pick('mag')

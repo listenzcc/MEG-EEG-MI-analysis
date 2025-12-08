@@ -29,7 +29,7 @@ from mne.stats import permutation_t_test
 DATA_DIR = Path('./data.v2/erd.permutation1000')
 OUTPUT_DIR = Path('./data.v2/erd.permutation1000.groupanalysis')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-MODE = 'eeg'
+MODE = 'meg'
 
 # %%
 n_observations = 10  # 10 subjects
@@ -73,7 +73,8 @@ n_channels = 3
 n_rows = 5
 fig, axes = plt.subplots(
     n_rows+1, n_channels, figsize=(8, 16),  # (n_channels*2, 3*n_rows),
-    gridspec_kw={"height_ratios": [10]*n_rows + [1]}
+    gridspec_kw={"height_ratios": [10]*n_rows + [1]},
+    dpi=300
 )
 
 event_names = [e.title()
@@ -148,7 +149,10 @@ for i_event, event in enumerate(['1', '2', '3', '4', '5']):
     vmin, vmax, vcenter, cmap = -5, 1, -3, 'RdBu'
     vmin, vmax, vcenter, cmap = -3, 3, 0, 'RdBu_r'
     vmin, vmax, vcenter, cmap = -3.5, 3.5, 0, 'RdBu_r'
-    # vmin, vmax, vcenter, cmap = -2, 2, 0, 'RdBu_r'
+
+    if MODE == 'meg':
+        vmin, vmax, vcenter, cmap = -2, 2, 0, 'RdBu_r'
+
     cnorm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
     # draw for each channel
