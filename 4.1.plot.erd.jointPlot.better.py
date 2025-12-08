@@ -293,7 +293,7 @@ def plot_erd_topomap(df, Opt):
                 cnorm = Normalize(vmin=-2, vmax=0)
 
             if band_name.lower() == 'alpha' and Opt.mode.lower() == 'eeg':
-                cnorm = Normalize(vmin=-3, vmax=0)
+                cnorm = Normalize(vmin=-3.5, vmax=0)
 
             if band_name.lower() == 'beta' and Opt.mode.lower() == 'eeg':
                 cnorm = Normalize(vmin=-2, vmax=0)
