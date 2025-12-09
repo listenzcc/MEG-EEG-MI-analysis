@@ -339,6 +339,7 @@ for evt in df_pivot['evt'].unique():
 
 df = pd.DataFrame(array, columns=[
                   'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])
+df.to_csv(CACHE_DIR.joinpath('events-regression-r2.csv'))
 display(df)
 
 sns.barplot(df, x='evt', y='R2', hue='mode', legend=None)
