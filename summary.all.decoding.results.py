@@ -113,7 +113,7 @@ TASK_TABLE = {
 df = pd.concat([conf_fbcsp, conf_fbcnet])
 df.to_csv(OUTPUT_DIR.joinpath('confusion-matrix.csv'))
 
-fig, axes = plt.subplots(2, 4, figsize=(15, 6), dpi=200)
+fig, axes = plt.subplots(2, 4, figsize=(15, 6), dpi=300)
 ticklabels = list(TASK_TABLE.values())
 # Absolute
 for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
@@ -126,7 +126,7 @@ for i, mode in enumerate(['EEG', 'MEG', 'COMBINE']):
                         xticklabels=ticklabels if j == 1 else False,
                         yticklabels=ticklabels if i == 0 else False,
                         fmt='.2f',
-                        annot_kws={'color': 'white'},
+                        # annot_kws={'color': 'white'},
                         cbar=True,
                         cbar_kws={"shrink": 0.7},
                         ax=ax)
@@ -149,7 +149,7 @@ for j, method in enumerate(['FBCSP', 'FBCNet']):
                     xticklabels=ticklabels if j == 1 else False,
                     yticklabels=ticklabels if i == 0 else False,
                     fmt='.2f',
-                    annot_kws={'color': 'white'},
+                    # annot_kws={'color': 'b'},
                     cbar=True,
                     cbar_kws={"shrink": 0.7},
                     ax=ax)

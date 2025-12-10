@@ -195,6 +195,7 @@ df_pivot = df_pivot.reset_index()
 df_pivot['evt'] = df_pivot['evt'].map(lambda e: TASK_TABLE[e])
 display(df_pivot)
 
+df_pivot.to_csv(CACHE_DIR.joinpath('events-scatter-meg-eeg-alpha-beta.csv'))
 # %%
 
 g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
