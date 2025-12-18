@@ -50,7 +50,7 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 
 # %%
 # --------------------------------------------------------------------------------
-mode = 'eeg'  # 'meg', 'eeg'
+mode = 'meg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -83,6 +83,7 @@ bands = Bands()
 # freq_ranges = [v for v in bands.bands.values()]
 # freq_ranges = [(e, e+4) for e in range(1, 45, 2)]
 freq_ranges = np.linspace(1, 40, 39*20, endpoint=False)
+freq_ranges = [(e, e+4) for e in freq_ranges]
 freq_ranges
 
 
