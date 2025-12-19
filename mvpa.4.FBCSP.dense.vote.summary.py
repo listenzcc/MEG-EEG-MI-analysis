@@ -22,8 +22,8 @@ from util.easy_import import *
 from sklearn import metrics
 
 # %%
-MODE = 'eeg'
-DATA_DIR = Path(f'./data/MVPA.FBCSP.vote.{MODE}.dense')
+eeg_data_dir = Path('./data/MVPA.FBCSP.vote.eeg.dense')
+meg_data_dir = Path('./data/MVPA.FBCSP.vote.meg.dense')
 
 # %% ---- 2025-12-18 ------------------------
 # Function and class
@@ -31,7 +31,8 @@ DATA_DIR = Path(f'./data/MVPA.FBCSP.vote.{MODE}.dense')
 
 # %% ---- 2025-12-18 ------------------------
 # Play ground
-raw_dump_files = sorted(list(DATA_DIR.rglob('*.dump')))
+raw_dump_files = sorted(list(eeg_data_dir.rglob('*.dump')))
+raw_dump_files.extend(sorted(list(meg_data_dir.rglob('*.dump'))))
 print(raw_dump_files)
 
 
@@ -58,13 +59,13 @@ for p in tqdm(raw_dump_files, 'Read files'):
         y_pred = np.argmax(proba, axis=1) + 1
         acc2 = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
 
-        accs.append((freq, acc, acc2, subject))
+        accs.append((freq, acc, acc2, subject, mode))
 
-accs = pd.DataFrame(accs, columns=['freq', 'acc', 'acc2', 'subject'])
+accs = pd.DataFrame(accs, columns=['freq', 'acc', 'acc2', 'subject', 'mode'])
 print(accs)
 
 # %%
-sns.lineplot(accs, x='freq', y='acc')
+sns.lineplot(accs, x='freq', y='acc', hue='mode')
 plt.show()
 
 # %% ---- 2025-12-18 ------------------------

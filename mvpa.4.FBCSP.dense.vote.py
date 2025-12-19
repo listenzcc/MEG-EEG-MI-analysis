@@ -82,6 +82,7 @@ data_directory.mkdir(parents=True, exist_ok=True)
 bands = Bands()
 # freq_ranges = [v for v in bands.bands.values()]
 # freq_ranges = [(e, e+4) for e in range(1, 45, 2)]
+# ! It almost costs a month to finish.
 freq_ranges = np.linspace(1, 40, 39*20, endpoint=False)
 freq_ranges = [(e, e+4) for e in freq_ranges]
 freq_ranges
