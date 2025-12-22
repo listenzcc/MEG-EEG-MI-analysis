@@ -65,6 +65,7 @@ accs = pd.DataFrame(accs, columns=['freq', 'acc', 'acc2', 'subject', 'mode'])
 print(accs)
 
 # %%
+accs.to_csv('./data/mvpa.FBCSP.dense.vote.summary.csv', index=False)
 sns.lineplot(accs, x='freq', y='acc', hue='mode')
 plt.show()
 
