@@ -207,6 +207,169 @@ g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
 g.set_titles(col_template="{col_name}", fontweight='bold')
 plt.show()
 
+# %%
+# 对每个组进行线性回归分析，重点关注斜率检验
+regression_results = []
+for evt in df_pivot['evt'].unique():
+    for band in df_pivot['band'].unique():
+        subset = df_pivot[(df_pivot['evt'] == evt) &
+                          (df_pivot['band'] == band)]
+        clean_subset = subset.dropna(subset=['eeg', 'meg'])
+
+        if len(clean_subset) > 2:
+            # 线性回归
+            slope, intercept, r_value, p_value, std_err = stats.linregress(
+                clean_subset['eeg'], clean_subset['meg']
+            )
+
+            # 计算斜率的t统计量和p值（双边检验）
+            n = len(clean_subset)
+            df = n - 2  # 自由度
+
+            # t统计量：斜率/标准误
+            t_stat = slope / std_err
+
+            # 斜率为零的双边t检验p值
+            p_slope_zero = 2 * stats.t.sf(np.abs(t_stat), df)
+
+            # 计算斜率的95%置信区间
+            t_critical = stats.t.ppf(0.975, df)  # 95%置信度的t临界值
+            ci_low = slope - t_critical * std_err
+            ci_high = slope + t_critical * std_err
+
+            regression_results.append({
+                'Event': evt,
+                'Band': band,
+                'n': n,
+                'slope': slope,
+                'intercept': intercept,
+                'std_err': std_err,
+                't_stat': t_stat,
+                'p_slope': p_slope_zero,  # 斜率显著不为零的p值
+                'ci_low': ci_low,
+                'ci_high': ci_high,
+                'r_value': r_value,
+                'r_squared': r_value**2,
+                'p_linregress': p_value,  # linregress返回的p值（与斜率检验等价）
+                'significant': p_slope_zero < 0.05,
+                'significance': '*' if p_slope_zero < 0.05 else 'ns'
+            })
+        else:
+            print(f"警告: {evt} - {band} 数据不足，无法进行回归分析")
+
+# 创建回归结果DataFrame
+regression_df = pd.DataFrame(regression_results)
+
+# 格式化显示
+
+
+def format_p_value(p):
+    if p < 0.0001:
+        return "<0.0001"
+    elif p < 0.001:
+        return f"{p:.4f}"
+    else:
+        return f"{p:.3f}"
+
+
+# 打印详细的斜率检验结果
+print("=" * 90)
+print("EEG-MEG 斜率检验结果（检验斜率是否显著不为零）")
+print("=" * 90)
+
+for evt in df_pivot['evt'].unique():
+    print(f"\n事件: {evt}")
+    print("-" * 50)
+
+    evt_results = regression_df[regression_df['Event'] == evt]
+
+    for _, row in evt_results.iterrows():
+        p_formatted = format_p_value(row['p_slope'])
+
+        print(f"{row['Band']}:")
+        print(f"  斜率 = {row['slope']:.4f} ± {row['std_err']:.4f}")
+        print(
+            f"  t({row['n']-2}) = {row['t_stat']:.3f}, p = {p_formatted} {row['significance']}")
+        print(f"  95% CI = [{row['ci_low']:.4f}, {row['ci_high']:.4f}]")
+        print(f"  截距 = {row['intercept']:.4f}, R² = {row['r_squared']:.3f}")
+        print()
+
+# 可选：创建汇总表格
+print("\n" + "=" * 90)
+print("斜率检验汇总")
+print("=" * 90)
+
+summary_table = regression_df[['Event', 'Band', 'n', 'slope', 'std_err',
+                               't_stat', 'p_slope', 'significant', 'r_squared']].copy()
+summary_table['p_slope'] = summary_table['p_slope'].apply(format_p_value)
+print(summary_table.to_string(index=False))
+
+# 保存结果
+regression_df.to_csv(CACHE_DIR.joinpath('slope_test_results.csv'), index=False)
+
+# 可选：进行多重比较校正
+print("\n" + "=" * 90)
+print("多重比较校正（Bonferroni校正）")
+print("=" * 90)
+
+# 获取所有p值
+p_values = regression_df['p_slope'].values
+num_tests = len(p_values)
+
+# Bonferroni校正
+alpha = 0.05
+bonferroni_corrected = alpha / num_tests
+
+print(f"总检验次数: {num_tests}")
+print(f"原始α水平: {alpha}")
+print(f"Bonferroni校正后α水平: {bonferroni_corrected:.6f}")
+
+# 应用校正
+regression_df['p_bonferroni'] = np.minimum(p_values * num_tests, 1.0)
+regression_df['sig_bonferroni'] = regression_df['p_slope'] < bonferroni_corrected
+
+for _, row in regression_df.iterrows():
+    sig_original = "显著" if row['p_slope'] < 0.05 else "不显著"
+    sig_bonferroni = "显著" if row['sig_bonferroni'] else "不显著"
+
+    print(f"{row['Event']} - {row['Band']}: "
+          f"原始p={format_p_value(row['p_slope'])}({sig_original}), "
+          f"Bonferroni p={format_p_value(row['p_bonferroni'])}({sig_bonferroni})")
+
+# %%
+# Statistical analysis
+# 对每个组进行线性回归分析
+regression_results = []
+for evt in df_pivot['evt'].unique():
+    for band in df_pivot['band'].unique():
+        subset = df_pivot[(df_pivot['evt'] == evt) &
+                          (df_pivot['band'] == band)]
+        clean_subset = subset.dropna(subset=['eeg', 'meg'])
+
+        if len(clean_subset) > 2:
+            # 线性回归
+            slope, intercept, r_value, p_value, std_err = stats.linregress(
+                clean_subset['eeg'], clean_subset['meg']
+            )
+
+            regression_results.append({
+                'Event': evt,
+                'Band': band,
+                'slope': slope,
+                'intercept': intercept,
+                'r_squared': r_value**2,
+                'p_value': p_value,
+                'std_err': std_err
+            })
+
+# 创建回归结果DataFrame
+regression_df = pd.DataFrame(regression_results)
+regression_df.to_csv(CACHE_DIR.joinpath('regression_results.csv'), index=False)
+print(regression_df)
+
+
+# %%
+
 g = sns.lmplot(data=df_pivot, x='eeg', y='meg',
                hue='band', col='t',  # 按时间分面
                markers='.',
