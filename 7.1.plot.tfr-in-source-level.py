@@ -24,6 +24,58 @@ from util.easy_import import *
 OUTPUT_DIR = Path(f'./data/TFR-Source/')
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+
+# %%
+class SubjectFsaverage:
+    # MNE fsaverage
+    subject = 'fsaverage'
+    subject_dir = mne.datasets.fetch_fsaverage()
+    subjects_dir = subject_dir.parent
+    src_path = subject_dir.joinpath('bem', 'fsaverage-ico-5-src.fif')
+    src = mne.read_source_spaces(src_path)
+
+
+subject = SubjectFsaverage()
+parc = 'aparc'
+parc = 'aparc_sub'
+labels_parc = mne.read_labels_from_annot(
+    subject.subject, parc=parc, subjects_dir=subject.subjects_dir)
+labels_parc_df = pd.DataFrame([(e.name, e)
+                              for e in labels_parc], columns=['name', 'label'])
+display(labels_parc_df)
+
+
+ROI_labels = [
+    # meg-alpha
+    ('alpha', 'precentral_5-lh'),
+    ('alpha', 'precentral_8-lh'),
+    ('alpha', 'postcentral_7-lh'),
+    ('alpha', 'postcentral_9-lh'),
+    ('alpha', 'postcentral_4-lh'),
+    ('alpha', 'supramarginal_6-lh'),
+    ('alpha', 'supramarginal_9-lh'),
+    ('alpha', 'superiorparietal_5-lh'),
+    ('alpha', 'superiorparietal_3-lh'),
+    # meg-beta
+    ('beta', 'postcentral_5-lh'),
+    ('beta', 'postcentral_4-lh'),
+    ('beta', 'superiorparietal_5-lh'),
+    ('beta', 'precentral_4-lh'),
+    ('beta', 'precentral_6-lh'),
+    ('beta', 'precentral_8-lh'),
+    ('beta', 'precentral_5-lh'),
+    ('beta', 'precentral_3-lh'),
+    ('beta', 'superiorfrontal_18-lh'),
+    ('beta', 'superiorfrontal_17-lh'),
+    ('beta', 'superiorfrontal_12-lh'),
+    ('beta', 'caudalmiddlefrontal_6-lh'),
+    ('beta', 'postcentral_7-lh'),
+    ('beta', 'postcentral_3-lh'),
+]
+
+label_names = [e[1] for e in ROI_labels if 'central' in e[1]]
+display(label_names)
+
 # %% ---- 2025-11-12 ------------------------
 # Function and class
 
@@ -37,7 +89,7 @@ class FsaverageSubject:
 def find_stc(subject, band, mode, evt):
     folder = Path(f'./data/tfr-stc-{band}/')
     subjects = [e.name for e in folder.iterdir()]
-    subject = [e for e in subjects if e.startswith(subject)][0]
+    subject = [e for e in subjects if e.lower().startswith(subject.lower())][0]
     print(subjects, subject)
     fpath = folder.joinpath(f'{subject}/{mode}-evt{evt}.stc')
     return fpath
@@ -131,6 +183,14 @@ def display(subject, band, mode, evt):
         brain_kwargs=brain_kwargs,
     )
     brain.add_text(0.5, 0.9, f'{title}', 'title', font_size=16)
+
+    # ['postcentral-lh', 'precentral-lh']:
+    for label_name in label_names:
+        label = labels_parc_df.query(f'name=="{label_name}"')[
+            'label'].values[0]
+        brain.add_label(label, hemi='lh',
+                        color='red', borders=True)
+
     brain.show()
     return
 
