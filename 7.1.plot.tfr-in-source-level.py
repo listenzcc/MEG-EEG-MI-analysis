@@ -190,6 +190,8 @@ def display(subject, band, mode, evt):
             'label'].values[0]
         brain.add_label(label, hemi='lh',
                         color='red', borders=True)
+        brain.add_label(label, hemi='lh',
+                        color='red', alpha=0.5, borders=False)
 
     brain.show()
     return
