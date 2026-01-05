@@ -183,6 +183,7 @@ for t in tqdm(ts):
     df['t'] = t
     dfs.append(df)
 df = pd.concat(dfs)
+df_raw = df.copy()
 display(df)
 
 # %%
@@ -403,6 +404,7 @@ plt.show()
 
 
 # %%
+df = df_raw
 
 # 首先将数据转换为宽格式
 df_pivot = df.pivot_table(index=['evt', 'area', 'subject', 'sub_area', 't', 'mode'],  # 保持其他标识列
@@ -511,7 +513,7 @@ plt.show()
 
 
 # %%
-exit(0)
+# exit(0)
 
 # %%
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
