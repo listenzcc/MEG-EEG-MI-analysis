@@ -19,12 +19,16 @@ Functions:
 
 # %% ---- 2025-12-18 ------------------------
 # Requirements and constants
+from itertools import product
+from sklearn.decomposition import PCA
 from util.easy_import import *
 from sklearn import metrics
 
 # %%
 eeg_data_dir = Path('./data/MVPA.FBCSP.vote.eeg.dense')
 meg_data_dir = Path('./data/MVPA.FBCSP.vote.meg.dense')
+
+output_dir = Path('./data/')
 
 # %% ---- 2025-12-18 ------------------------
 # Function and class
@@ -78,26 +82,93 @@ accs = pd.DataFrame(accs, columns=['freq', 'acc', 'acc2', 'subject', 'mode'])
 print(accs)
 
 # %%
+freqs
+
+# %%
 # accs.to_csv('./data/mvpa.FBCSP.dense.vote.summary.csv', index=False)
 sns.lineplot(accs, x='freq', y='acc', hue='mode')
 plt.show()
 
 # %% ---- 2025-12-18 ------------------------
 # Pending
+accs
 
 # %%
 print(details)
 
 # %%
-fig, axes = plt.subplots(10, 2, figsize=(6, 30))
-for sub in range(10):
-    axes[sub][0].imshow(
-        details['meg'][f'S{sub+1:02d}']['proba_array'][:, :, 0].T)
-    axes[sub][1].imshow(
-        details['eeg'][f'S{sub+1:02d}']['proba_array'][:, :, 0].T)
-    axes[sub][0].set_title('MEG')
-    axes[sub][1].set_title('EEG')
+subjects = [f'S{sub+1:02d}' for sub in range(10)]
+x_positions = [np.mean(e) for e in freqs if np.mean(e) <= 15]
+x_positions_int = [e for e in x_positions if e % 5 == 0]
+
+event_id = 0
+
+fig, axes = plt.subplots(len(subjects), 2, figsize=(6, 30))
+for i, sub in enumerate(subjects):
+    # meg/eeg shape is (n_samples, n_freqs)
+    meg = details['meg'][sub]['proba_array'][:, :, event_id].T
+    eeg = details['eeg'][sub]['proba_array'][:, :, event_id].T
+    axes[i][0].imshow(meg, extent=[min(x_positions),
+                      max(x_positions), 0, meg.shape[0]],)
+    axes[i][1].imshow(eeg, extent=[min(x_positions),
+                      max(x_positions), 0, meg.shape[0]],)
+    axes[i][0].set_title(f'MEG - ({sub})')
+    axes[i][1].set_title(f'EEG - ({sub})')
+
+    for ax in axes[i]:
+        ax.set_aspect('auto')  # 保持自动纵横比
+        ax.set_xticks(x_positions_int)
+        ax.set_xlabel('Hz')
+        ax.set_yticks([])
+
 fig.tight_layout()
 plt.show()
 
+# %%
+X = meg.copy()
+pca = PCA(n_components=.95)  # 降维到2维
+X_pca = pca.fit_transform(X)
+print("解释方差比例:", pca.explained_variance_ratio_)
+print("累计解释方差:", np.cumsum(pca.explained_variance_ratio_))
+
+X = eeg.copy()
+pca = PCA(n_components=.95)  # 降维到2维
+X_pca = pca.fit_transform(X)
+print("解释方差比例:", pca.explained_variance_ratio_)
+print("累计解释方差:", np.cumsum(pca.explained_variance_ratio_))
+
+
+# %%
+event_ids = [0, 1, 2, 3, 4]
+TASK_TABLE = {
+    '1': 'Hand',
+    '2': 'Wrist',
+    '3': 'Elbow',
+    '4': 'Shoulder',
+    '5': 'Rest'
+}
+modes = ['meg', 'eeg']
+pca_results = []
+for event_id, mode, sub in product(event_ids, modes, subjects):
+    # mat shape is (n_samples, n_freqs)
+    mat = details[mode][sub]['proba_array'][:, :, event_id].T
+    X = mat.copy()
+    pca = PCA(n_components=.9)  # 降维到2维
+    X_pca = pca.fit_transform(X)
+    evr = pca.explained_variance_ratio_
+    evrc = np.cumsum(evr)
+    pca_results.append({
+        'evt': list(TASK_TABLE.values())[event_id],
+        'mode': mode,
+        'sub': sub,
+        'n': len(evr),
+        'evr': evr,
+        'evrc': evrc,
+    })
+pca_results = pd.DataFrame(pca_results)
+display(pca_results)
+pca_results.to_csv(output_dir / 'decoding-compare-in-pca.csv')
+
+sns.boxplot(pca_results, x='mode', y='n', hue='evt')
+plt.show()
 # %%
