@@ -420,6 +420,7 @@ display(df_pivot)
 # %%
 sns.set_theme(context='paper', style='ticks', font_scale=2)
 
+print('MEG & EEG Differences Across tasks')
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                hue='mode', col='evt',  # 按事件分面
                markers='.',
@@ -427,7 +428,47 @@ g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                height=5, aspect=1,
                ci=95)  # 置信区间
 g.set_titles(col_template="{col_name}", fontweight='bold')
+df_pivot.to_csv(CACHE_DIR / 'events-regression.csv')
 plt.show()
+
+array = []
+for evt in df_pivot['evt'].unique():
+    for t in df_pivot['t'].unique():
+        for mode in df_pivot['mode'].unique():
+            # [df_pivot['evt'] == evt]
+            df_evt = df_pivot.query(f'evt=="{evt}" & t=={t} & mode=="{mode}"')
+            model = sm.OLS(df_evt['beta'], sm.add_constant(
+                df_evt['alpha'])).fit()
+            # print(
+            #     f'{evt=}, {mode=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
+
+            # 获取关心的四个核心指标
+            R2 = model.rsquared
+            alpha_coef = model.params[1]
+            alpha_pvalue = model.pvalues[1]
+
+            # 残差正态性检验 (Omnibus test)
+            residuals = model.resid
+            omnibus_stat, omnibus_pvalue = stats.normaltest(residuals)
+
+            # 自相关检验 (Durbin-Watson)
+            durbin_watson = sm.stats.stattools.durbin_watson(residuals)
+
+            array.append(
+                (evt, mode, t, R2, alpha_coef, omnibus_pvalue)
+            )
+
+            # print(model.summary())
+
+df = pd.DataFrame(array, columns=[
+                  'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])
+df.to_csv(CACHE_DIR.joinpath('events-regression-r2.csv'))
+display(df)
+
+sns.barplot(df, x='evt', y='R2', hue='mode', legend=None)
+plt.show()
+
+# %%
 
 g = sns.lmplot(data=df_pivot, x='alpha', y='beta',
                hue='mode', col='t',  # 按时间分面
@@ -470,6 +511,7 @@ df = pd.DataFrame(array, columns=[
                   'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])
 display(df)
 
+# %%
 sns.barplot(df, x='t', y='R2', hue='mode', legend=None)
 plt.show()
 
@@ -482,8 +524,8 @@ for evt in df_pivot['evt'].unique():
             df_evt = df_pivot.query(f'evt=="{evt}" & t=={t} & mode=="{mode}"')
             model = sm.OLS(df_evt['beta'], sm.add_constant(
                 df_evt['alpha'])).fit()
-            print(
-                f'{evt=}, {mode=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
+            # print(
+            #     f'{evt=}, {mode=}, R²={model.rsquared=:.4f}, p-value={model.pvalues[1]=:.4e}')
 
             # 获取关心的四个核心指标
             R2 = model.rsquared
@@ -501,7 +543,7 @@ for evt in df_pivot['evt'].unique():
                 (evt, mode, t, R2, alpha_coef, omnibus_pvalue)
             )
 
-            print(model.summary())
+            # print(model.summary())
 
 df = pd.DataFrame(array, columns=[
                   'evt', 'mode', 't', 'R2', 'alpha_coef', 'omnibus_p'])

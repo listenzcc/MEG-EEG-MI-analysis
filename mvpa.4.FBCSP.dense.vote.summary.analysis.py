@@ -95,6 +95,13 @@ accs
 
 # %%
 print(details)
+df = pd.DataFrame(details)
+print(df)
+df.to_json(output_dir / 'decoding-results-in-bands.json')
+
+# %%
+df1 = pd.read_json(output_dir / 'decoding-results-in-bands.json')
+display(df1)
 
 # %%
 subjects = [f'S{sub+1:02d}' for sub in range(10)]
@@ -161,7 +168,7 @@ for event_id, mode, sub in product(event_ids, modes, subjects):
         'evt': list(TASK_TABLE.values())[event_id],
         'mode': mode,
         'sub': sub,
-        'n': len(evr),
+        'n': len(evr) / ((273/35) if mode == 'meg' else 1),
         'evr': evr,
         'evrc': evrc,
     })
@@ -169,6 +176,7 @@ pca_results = pd.DataFrame(pca_results)
 display(pca_results)
 pca_results.to_csv(output_dir / 'decoding-compare-in-pca.csv')
 
-sns.boxplot(pca_results, x='mode', y='n', hue='evt')
+# %%
+sns.boxplot(pca_results, x='evt', y='n', hue='mode')
 plt.show()
 # %%
