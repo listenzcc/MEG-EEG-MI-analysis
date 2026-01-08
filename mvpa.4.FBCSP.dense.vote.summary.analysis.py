@@ -97,7 +97,7 @@ accs
 print(details)
 df = pd.DataFrame(details)
 print(df)
-df.to_json(output_dir / 'decoding-results-in-bands.json')
+# df.to_json(output_dir / 'decoding-results-in-bands.json')
 
 # %%
 df1 = pd.read_json(output_dir / 'decoding-results-in-bands.json')
