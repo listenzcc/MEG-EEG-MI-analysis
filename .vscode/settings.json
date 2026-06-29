@@ -13,5 +13,7 @@
         "rawdata": true,
         "log": true,
     },
-    "python.analysis.indexing":false,
+    "python.analysis.indexing": false,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
 }
