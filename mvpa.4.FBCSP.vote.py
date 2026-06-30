@@ -51,6 +51,7 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 # --------------------------------------------------------------------------------
 mode = 'eeg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
+tasks = '12345'
 subject_directory = Path('./rawdata/S01_20220119')
 
 # subject_directory = Path("./rawdata/S07_20231220")
@@ -58,14 +59,22 @@ subject_directory = Path('./rawdata/S01_20220119')
 # Use the arguments
 parse = argparse.ArgumentParser('Compute FBCSP decoding with vote')
 parse.add_argument('-s', '--subject-dir', required=True)
+parse.add_argument('-t', '--tasks', required=True)
+parse.add_argument('-m', '--mode', required=True)
 args = parse.parse_args()
+print(args)
 subject_directory = Path(args.subject_dir)
+mode = args.mode
+tasks = args.tasks
+assert mode in ['meg', 'eeg'], f'Incorrect {mode=}'
+assert all([e in '12345' for e in tasks]), f'Incorrect {tasks=}'
+evts = [e for e in tasks]  # ['1', '2', '3', '4', '5']
 
 # --------------------------------------------------------------------------------
 # Prepare the paths
 subject_name = subject_directory.name
 data_directory = Path(
-    f'./data/MVPA.FBCSP.vote.{mode}.fine-0.0-4.0/{subject_name}')
+    f'./data/MVPA.FBCSP.vote.{mode}.fine.{tasks}/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # %%
@@ -155,9 +164,15 @@ def concat_epochs(mds: list[MyData]):
     return eeg_epochs, meg_epochs, groups
 
 
-evts = ['1', '2', '3', '4', '5']
 mds, event_id = read_data()
 eeg_epochs, meg_epochs, groups = concat_epochs(mds)
+
+if mode in ['eeg', 'all']:
+    eeg_epochs = mne.concatenate_epochs([eeg_epochs[e] for e in evts])
+
+if mode in ['meg', 'all']:
+    meg_epochs = mne.concatenate_epochs([meg_epochs[e] for e in evts])
+
 
 # %%
 print(eeg_epochs)
