@@ -168,10 +168,20 @@ mds, event_id = read_data()
 eeg_epochs, meg_epochs, groups = concat_epochs(mds)
 
 if mode in ['eeg', 'all']:
-    eeg_epochs = mne.concatenate_epochs([eeg_epochs[e] for e in evts])
+    mask = [f'{e[-1]}' in tasks for e in eeg_epochs.events]
 
 if mode in ['meg', 'all']:
-    meg_epochs = mne.concatenate_epochs([meg_epochs[e] for e in evts])
+    mask = [f'{e[-1]}' in tasks for e in meg_epochs.events]
+
+groups = [g for g, m in zip(groups, mask) if m]
+
+# %%
+
+if mode in ['eeg', 'all']:
+    eeg_epochs = eeg_epochs[mask]
+
+if mode in ['meg', 'all']:
+    meg_epochs = meg_epochs[mask]
 
 
 # %%
