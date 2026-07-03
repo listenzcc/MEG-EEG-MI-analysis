@@ -208,7 +208,8 @@ def load_FBCSP_df():
 
     for data_directory in data_directories:
         name = data_directory.name
-        mode = name.split('.')[-2].upper()
+        # name.split('.')[-2].upper()
+        mode = 'EEG' if '.eeg.' in name else 'MEG'
         print(f'Working with {name=}, {mode=}')
 
         data_files = list(data_directory.rglob('*.dump'))

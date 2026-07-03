@@ -4,7 +4,7 @@ source ~/.zshrc
 conda activate mne-analysis
 
 # script=mvpa.4.FBCSP.vote.py
-script=mvpa.4.FBCSP.vote-accumulate.py
+script=mvpa.4.FBCSP.vote-accumulate-dev.py
 
 python $script -s ./rawdata/S01_20220119 &
 python $script -s ./rawdata/S02_20220315 

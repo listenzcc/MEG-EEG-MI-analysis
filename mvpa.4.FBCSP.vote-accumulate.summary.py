@@ -15,9 +15,11 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 data_directories = [
     Path('./data/MVPA.FBCSP.vote-accumulate.eeg'),
-    Path('./data/MVPA.FBCSP.vote-accumulate.meg'),
-    Path('./data/MVPA.FBCSP.vote-accumulate-1'),
-    Path('./data/MVPA.FBCSP.vote-accumulate-2'),
+    Path('./data/MVPA.FBCSP.vote-accumulate-3eeg'),
+    Path('./data/MVPA.FBCSP.vote-accumulate-dev'),
+    # Path('./data/MVPA.FBCSP.vote-accumulate.meg'),
+    # Path('./data/MVPA.FBCSP.vote-accumulate-1'),
+    # Path('./data/MVPA.FBCSP.vote-accumulate-2'),
 ]
 
 tmax_array = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]

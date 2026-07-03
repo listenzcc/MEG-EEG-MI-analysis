@@ -50,7 +50,7 @@ from util.io.ds_directory_operation import find_ds_directories, read_ds_director
 
 # %%
 # --------------------------------------------------------------------------------
-mode = 'meg'  # 'meg', 'eeg'
+mode = 'eeg'  # 'meg', 'eeg'
 band_name = 'all'  # 'delta', 'theta', 'alpha', 'beta', 'gamma', 'all'
 subject_directory = Path('./rawdata/S01_20220119')
 
@@ -66,7 +66,7 @@ subject_directory = Path(args.subject_dir)
 # Prepare the paths
 subject_name = subject_directory.name
 data_directory = Path(
-    f'./data/MVPA.FBCSP.vote.{mode}.dense/{subject_name}')
+    f'./data/MVPA.FBCSP.vote.{mode}.dense-1/{subject_name}')
 data_directory.mkdir(parents=True, exist_ok=True)
 
 # %%
