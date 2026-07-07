@@ -7,7 +7,28 @@ from util.easy_import import *
 # %%
 
 
-def combine_eeg_meg_FBCSP_results(data_directories):
+def convert_y_true(y_true, tasks):
+    '''
+    Convert y_true with tasks order to match y_pred
+
+    For example,
+    if y_true is [1, 4, 4, 1],
+    and tasks is '14'.
+    Then,
+    y_output is [1, 2, 2, 1]
+    '''
+
+    # Do nothing if tasks is None
+    if tasks is None:
+        return y_true
+
+    y_output = y_true.copy()
+    for i, e in enumerate(y_output):
+        y_output[i] = 1 + tasks.index(str(e))
+    return y_output
+
+
+def combine_eeg_meg_FBCSP_results(data_directories, tasks: str = None):
     def vote(preds):
         candidates = {k: 0 for k in [1, 2, 3, 4, 5]}
         for i, e in enumerate(preds):
@@ -37,6 +58,7 @@ def combine_eeg_meg_FBCSP_results(data_directories):
 
         # y_true shape: samples
         y_true = d['y_true']
+        y_true = convert_y_true(y_true, tasks)
         y_true_stack.append(y_true)
 
         # y_preds shape: bands x samples
@@ -100,7 +122,7 @@ def combine_eeg_meg_FBCSP_results(data_directories):
     return df21, df22
 
 
-def load_FBCSP_df(data_directories):
+def load_FBCSP_df(data_directories, tasks: str = None):
 
     df1s = []
     df2s = []
@@ -137,6 +159,7 @@ def load_FBCSP_df(data_directories):
 
             # y_true shape: samples
             y_true = d['y_true']
+            y_true = convert_y_true(y_true, tasks)
             y_true_stack.append(y_true)
 
             # y_preds shape: bands x samples
@@ -207,7 +230,8 @@ def load_FBCSP_df(data_directories):
 
 array = []
 
-for tasks in tqdm(['all', '1234', '12', '13', '14'], 'Tasks'):
+for tasks in tqdm(['all', '1234', '12', '13', '14', '23', '24', '34'], 'Tasks'):
+
     if tasks == 'all':
         data_directories = {
             'eeg': Path('./data/MVPA.FBCSP.vote.eeg.fine'),
@@ -219,14 +243,16 @@ for tasks in tqdm(['all', '1234', '12', '13', '14'], 'Tasks'):
             'meg': Path(f'./data/MVPA.FBCSP.vote.meg.fine.{tasks}'),
         }
 
-    try:
-        df21, df22 = combine_eeg_meg_FBCSP_results(data_directories)
-        dfs, dfm_a, dfm_c = load_FBCSP_df(data_directories)
+    # try:
+    df21, df22 = combine_eeg_meg_FBCSP_results(
+        data_directories, None if tasks == 'all' else tasks)
+    dfs, dfm_a, dfm_c = load_FBCSP_df(
+        data_directories, None if tasks == 'all' else tasks)
 
-        dfm_a = pd.concat([dfm_a, df21])
-        dfm_c = pd.concat([dfm_c, df22])
-    except:
-        continue
+    dfm_a = pd.concat([dfm_a, df21])
+    dfm_c = pd.concat([dfm_c, df22])
+    # except:
+    #     continue
 
     df = dfm_a
     df['tasks'] = tasks
@@ -236,6 +262,15 @@ table = pd.concat(array)
 table
 
 # %%
+TASK_TABLE = {
+    '1': 'Hand 手',
+    '2': 'Wrist 腕',
+    '3': 'Elbow 肘',
+    '4': 'Shoulder 肩',
+    '5': 'Rest'
+}
+print(TASK_TABLE)
+
 sns.barplot(table, x='mode', y='accuracy', hue='tasks')
 plt.show()
 
