@@ -259,6 +259,9 @@ for tasks in tqdm(['all', '1234', '12', '13', '14', '23', '24', '34'], 'Tasks'):
     array.append(df)
 
 table = pd.concat(array)
+OUTPUT_DIR = Path('./revision-data')
+OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+table.to_csv(OUTPUT_DIR / 'decoding-results.csv')
 table
 
 # %%
