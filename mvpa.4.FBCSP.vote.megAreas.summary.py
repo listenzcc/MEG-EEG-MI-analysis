@@ -123,6 +123,12 @@ group = df_freqs.groupby(['chHemi', 'chMark', 'freq'])
 sum_freq = group.mean(True)
 print(sum_freq)
 
+fname = output_directory / 'df_vote.csv'
+df_vote.to_csv(fname)
+print(fname)
+
+stophere
+
 # %% ---- 2025-09-11 ------------------------
 # Pending
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
