@@ -18,6 +18,9 @@ Functions:
 
 # %% ---- 2025-11-26 ------------------------
 # Requirements and constants
+from scipy import stats
+import pandas as pd
+import numpy as np
 import pingouin as pg
 from util.easy_import import *
 
@@ -291,6 +294,200 @@ for key, value in effect_sizes.items():
 
 
 # %%
+
+# %% ---- Paired effect sizes and bootstrap confidence intervals
+# Reviewer 3: MEG vs EEG and COMBINE vs EEG
+
+
+def paired_effect_statistics(
+    data,
+    method,
+    mode_a,
+    mode_b,
+    n_bootstrap=10000,
+    confidence=0.95,
+    random_state=42,
+):
+    """
+    Paired comparison between two modes.
+
+    Difference = mode_a - mode_b
+
+    Returns:
+        Mean accuracy of each mode
+        Mean paired difference
+        Cohen's dz
+        95% paired bootstrap CI
+        Paired t-test p-value
+    """
+
+    # Extract subject-wise accuracy
+    subset = data[
+        (data['method'] == method) &
+        (data['mode'].isin([mode_a, mode_b]))
+    ][['subject', 'mode', 'accuracy']].copy()
+
+    # Pivot to paired subject-level data
+    pivot = subset.pivot(
+        index='subject',
+        columns='mode',
+        values='accuracy'
+    )
+
+    # Keep only subjects with both observations
+    pivot = pivot.dropna(subset=[mode_a, mode_b])
+
+    x = pivot[mode_a].to_numpy(dtype=float)
+    y = pivot[mode_b].to_numpy(dtype=float)
+
+    n = len(x)
+
+    if n < 2:
+        raise ValueError(
+            f'Not enough paired subjects: {method}, '
+            f'{mode_a} vs {mode_b}'
+        )
+
+    # Paired differences
+    diff = x - y
+
+    mean_a = np.mean(x)
+    std_a = np.std(x, ddof=1)
+
+    mean_b = np.mean(y)
+    std_b = np.std(y, ddof=1)
+
+    mean_diff = np.mean(diff)
+    sd_diff = np.std(diff, ddof=1)
+
+    # Cohen's dz for paired samples
+    cohens_dz = (
+        mean_diff / sd_diff
+        if sd_diff > 0 else np.nan
+    )
+
+    # Paired t-test
+    t_stat, p_value = stats.ttest_rel(x, y)
+
+    # Paired participant-level bootstrap
+    rng = np.random.default_rng(random_state)
+
+    boot_diffs = np.empty(n_bootstrap)
+
+    for i in range(n_bootstrap):
+        indices = rng.integers(0, n, size=n)
+
+        # Preserve the pairing by resampling subjects
+        boot_diffs[i] = np.mean(diff[indices])
+
+    alpha = 1 - confidence
+
+    ci_low, ci_high = np.percentile(
+        boot_diffs,
+        [
+            100 * alpha / 2,
+            100 * (1 - alpha / 2)
+        ]
+    )
+
+    return {
+        'Method': method,
+        'Comparison': f'{mode_a} - {mode_b}',
+        'N': n,
+        'Mean A': mean_a,
+        'SD A': std_a,
+        'Mean B': mean_b,
+        'SD B': std_b,
+        'Mean Difference': mean_diff,
+        "Cohen's dz": cohens_dz,
+        '95% Bootstrap CI Lower': ci_low,
+        '95% Bootstrap CI Upper': ci_high,
+        't': t_stat,
+        'p': p_value,
+    }
+
+
+# --------------------------------------------------
+# Run comparisons
+# --------------------------------------------------
+
+comparisons = [
+    ('FBCSP', 'MEG', 'EEG'),
+    ('FBCNet', 'MEG', 'EEG'),
+    ('FBCSP', 'COMBINE', 'EEG'),
+    ('FBCNet', 'COMBINE', 'EEG'),
+]
+
+results = []
+
+for method, mode_a, mode_b in comparisons:
+
+    result = paired_effect_statistics(
+        data=df,
+        method=method,
+        mode_a=mode_a,
+        mode_b=mode_b,
+        n_bootstrap=10000,
+        confidence=0.95,
+        random_state=42,
+    )
+
+    results.append(result)
+
+
+# --------------------------------------------------
+# Print results
+# --------------------------------------------------
+
+results_df = pd.DataFrame(results)
+
+print('\n' + '=' * 100)
+print('PAIRED MODALITY COMPARISONS')
+print('=' * 100)
+
+for _, row in results_df.iterrows():
+
+    print(f"\n{row['Method']}: {row['Comparison']}")
+    print(f"N = {row['N']}")
+
+    print(
+        f"Mode A: {row['Mean A']:.4f} "
+        f"+/- {row['SD A']:.4f}"
+    )
+
+    print(
+        f"Mode B: {row['Mean B']:.4f} "
+        f"+/- {row['SD B']:.4f}"
+    )
+
+    print(
+        f"Mean difference = {row['Mean Difference']:.4f}"
+    )
+
+    print(
+        f'Cohen\'s dz = {row["Cohen\'s dz"]:.3f}'
+    )
+
+    print(
+        '95% Paired Bootstrap CI = '
+        f"[{row['95% Bootstrap CI Lower']:.4f}, "
+        f"{row['95% Bootstrap CI Upper']:.4f}]"
+    )
+
+    print(
+        f"Paired t-test: t = {row['t']:.3f}, "
+        f"p = {row['p']:.4f}"
+    )
+
+print('\n' + '=' * 100)
+
+# Save results
+results_df.to_csv(
+    OUTPUT_DIR / 'paired-effect-statistics.csv',
+    index=False
+)
+
+print('Results saved to paired-effect-statistics.csv')
 
 # %%
 # %%
