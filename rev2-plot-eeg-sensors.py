@@ -104,6 +104,7 @@ rename = {ch: f"{ch}{i+1}" for i,
 
 rename = {s: d for s, d in zip(info['ch_names'], ch_names)}
 raw.rename_channels(rename)
+raw.set_montage('standard_1020', on_missing='warn')
 
 print(info['ch_names'])
 
@@ -120,12 +121,12 @@ mne.viz.plot_sensors(info)
 # %% ---- 2026-11-04 ------------------------
 # Pending
 
-# %% ---- MEG sensor classification and visualization
-# Figure S1: MEG sensor coverage across five cortical regions
+# %% ---- EEG sensor classification and visualization
+# Figure S1: EEG sensor coverage across five cortical regions
 
 
 # --------------------------------------------------
-# 1. Load MEG information
+# 1. Load EEG information
 # --------------------------------------------------
 
 info = raw.info
@@ -144,24 +145,27 @@ region_names = {
     'F': 'Frontal',
     'C': 'Central',
     'P': 'Parietal',
-    'T': 'Temporal',
-    'O': 'Occipital',
+    # 'T': 'Temporal',
+    # 'O': 'Occipital',
 }
 
 # Distinct colors for the five regions
 region_colors = {
     'F': '#E76F51',  # Coral
     'C': '#2A9D8F',  # Teal
-    'O': '#257B9D',  # Blue
-    'T': '#9B72CF',  # Violet
     'P': '#E9A23B',  # Orange
 }
+region_colors = {
+    'F': '#333333',  # Coral
+    'C': '#333333',  # Teal
+    'P': '#333333',  # Orange
+}
 
-region_order = ['F', 'C', 'P', 'T', 'O']
+region_order = ['F', 'C', 'P']
 
 
 # --------------------------------------------------
-# 3. Match actual MEG channels to region definitions
+# 3. Match actual EEG channels to region definitions
 # --------------------------------------------------
 
 def normalize_channel_name(name):
@@ -209,7 +213,7 @@ for region in region_order:
 assigned_channels = []
 
 print('\n' + '=' * 70)
-print('MEG SENSOR DISTRIBUTION')
+print('EEG SENSOR DISTRIBUTION')
 print('=' * 70)
 
 for region in region_order:
@@ -238,10 +242,10 @@ for region in region_order:
 
 
 # Check duplicate assignments
-if len(assigned_channels) != len(set(assigned_channels)):
-    raise ValueError(
-        'Some MEG channels are assigned to multiple regions.'
-    )
+# if len(assigned_channels) != len(set(assigned_channels)):
+#     raise ValueError(
+#         'Some EEG channels are assigned to multiple regions.'
+#     )
 
 # Check missing channels
 unassigned_indices = sorted(
@@ -254,14 +258,14 @@ if unassigned_indices:
         ch_names[i] for i in unassigned_indices
     ]
 
-    print('\nWARNING: Unassigned MEG channels:')
+    print('\nWARNING: Unassigned EEG channels:')
     print(unassigned_names)
 
 else:
-    print('\nAll MEG channels have been assigned.')
+    print('\nAll EEG channels have been assigned.')
 
 
-print(f'\nTotal MEG channels: {len(ch_names)}')
+print(f'\nTotal EEG channels: {len(ch_names)}')
 print(f'Assigned channels: {len(assigned_channels)}')
 print('=' * 70)
 
@@ -270,11 +274,10 @@ print('=' * 70)
 # --------------------------------------------------
 
 
-# Select MEG magnetometers
+# Select EEG magnetometers
 picks = mne.pick_types(
     info,
-    meg='mag',
-    ref_meg=False,
+    eeg=True,
     exclude='bads'
 )
 
@@ -295,11 +298,11 @@ channel_positions = {
 fig = mne.viz.plot_sensors(
     info,
     kind='topomap',
-    ch_type='mag',
-    show_names=False,
+    ch_type='eeg',
     pointsize=0,       # Small background points
     linewidth=0.0,
-    title='MEG sensor distribution',
+    title='EEG sensor distribution',
+    show_names=True,
     show=False,
 )
 
@@ -384,145 +387,22 @@ output_dir = Path('./data')
 output_dir.mkdir(parents=True, exist_ok=True)
 
 fig.savefig(
-    output_dir / 'meg-sensor-distribution.png',
-    dpi=600,
-    bbox_inches='tight',
-    facecolor='white',
-)
-
-fig.savefig(
-    output_dir / 'meg-sensor-distribution.pdf',
-    bbox_inches='tight',
-    facecolor='white',
-)
-
-fig.savefig(
-    output_dir / 'meg-sensor-distribution.svg',
-    bbox_inches='tight',
-    facecolor='white',
-)
-
-plt.show()
-
-
-# %%
-
-# --------------------------------------------------
-# 5. Get the original MNE 2D sensor positions
-# --------------------------------------------------
-
-
-# Use the same channel selection as the original plot
-picks = mne.pick_types(
-    info,
-    meg='mag',
-    ref_meg=False,
-    exclude='bads'
-)
-
-# Obtain MNE's 2D topomap coordinates
-pos = _find_topomap_coords(info, picks)
-
-# Map original channel indices to 2D coordinates
-channel_positions = {
-    ch_idx: pos[i]
-    for i, ch_idx in enumerate(picks)
-}
-
-
-# --------------------------------------------------
-# 6. Plot sensors with explicitly assigned colors
-# --------------------------------------------------
-
-fig, ax = plt.subplots(figsize=(7.5, 6.5))
-
-for region in region_order:
-
-    indices = [
-        idx for idx in region_indices[region]
-        if idx in channel_positions
-    ]
-
-    if not indices:
-        continue
-
-    xy = np.array([
-        channel_positions[idx]
-        for idx in indices
-    ])
-
-    ax.scatter(
-        xy[:, 0],
-        xy[:, 1],
-        s=35,
-        c=region_colors[region],
-        edgecolors='black',
-        linewidths=0.35,
-        label=region_names[region],
-        zorder=3
-    )
-
-
-# --------------------------------------------------
-# 7. Legend
-# --------------------------------------------------
-
-legend_handles = []
-
-for region in region_order:
-
-    n_channels = sum(
-        idx in channel_positions
-        for idx in region_indices[region]
-    )
-
-    legend_handles.append(
-        patches.Patch(
-            facecolor=region_colors[region],
-            edgecolor='black',
-            label=f"{region_names[region]} (n = {n_channels})"
-        )
-    )
-
-ax.legend(
-    handles=legend_handles,
-    loc='upper right',
-    bbox_to_anchor=(1.25, 1.05),
-    frameon=False,
-    fontsize=9
-)
-
-ax.set_aspect('equal')
-ax.axis('off')
-ax.set_title('MEG sensor distribution')
-
-fig.tight_layout()
-
-
-# --------------------------------------------------
-# 8. Save figures
-# --------------------------------------------------
-
-output_dir = Path('./data')
-output_dir.mkdir(parents=True, exist_ok=True)
-
-fig.savefig(
     output_dir / 'eeg-sensor-distribution.png',
     dpi=600,
     bbox_inches='tight',
-    facecolor='white'
+    facecolor='white',
 )
 
 fig.savefig(
     output_dir / 'eeg-sensor-distribution.pdf',
     bbox_inches='tight',
-    facecolor='white'
+    facecolor='white',
 )
 
 fig.savefig(
     output_dir / 'eeg-sensor-distribution.svg',
     bbox_inches='tight',
-    facecolor='white'
+    facecolor='white',
 )
 
 plt.show()
