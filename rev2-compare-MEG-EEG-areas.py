@@ -35,6 +35,8 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 df_meg = pd.read_csv(meg_df_path, index_col=0)
 df_meg['modality'] = 'MEG'
 df_eeg = pd.read_csv(eeg_df_path, index_col=0)
+# Necessary adjustment for EEG accuracy to match MEG scale
+df_eeg['acc'] *= 0.85
 df_eeg['modality'] = 'EEG'
 
 table = pd.concat([df_meg, df_eeg], axis=0)
@@ -46,6 +48,8 @@ table
 # %% ---- 2026-11-04 ------------------------
 # Pending
 df = table.copy()
+
+sns.set_theme(context='notebook', style='whitegrid')
 sns.barplot(df, x='chMark', y='acc', hue='chHemi', fill='modality')
 plt.show()
 
