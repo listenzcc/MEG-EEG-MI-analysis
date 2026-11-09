@@ -250,7 +250,6 @@ print('=' * 70)
 # 5. Obtain MNE 2D topomap sensor coordinates
 # --------------------------------------------------
 
-
 # Select MEG magnetometers
 picks = mne.pick_types(
     info,
@@ -268,6 +267,11 @@ channel_positions = {
     for i, ch_idx in enumerate(picks)
 }
 
+# %%
+import json
+json.dump(info.to_json_dict(), open('./data/meg_info.json', 'w'))
+
+# %%
 
 # --------------------------------------------------
 # 6. Create MNE native 2D head topomap
@@ -281,6 +285,7 @@ fig = mne.viz.plot_sensors(
     pointsize=0,       # Small background points
     linewidth=0.0,
     title='MEG sensor distribution',
+    to_sphere=True,
     show=False,
 )
 

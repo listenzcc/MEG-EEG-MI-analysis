@@ -121,6 +121,10 @@ mne.viz.plot_sensors(info)
 # %% ---- 2026-11-04 ------------------------
 # Pending
 
+# %%
+import json
+json.dump(info.to_json_dict(), open('./data/eeg_info.json', 'w'))
+
 # %% ---- EEG sensor classification and visualization
 # Figure S1: EEG sensor coverage across five cortical regions
 
