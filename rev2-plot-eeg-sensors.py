@@ -121,9 +121,6 @@ mne.viz.plot_sensors(info)
 # %% ---- 2026-11-04 ------------------------
 # Pending
 
-# %%
-import json
-json.dump(info.to_json_dict(), open('./data/eeg_info.json', 'w'))
 
 # %% ---- EEG sensor classification and visualization
 # Figure S1: EEG sensor coverage across five cortical regions
@@ -303,12 +300,22 @@ fig = mne.viz.plot_sensors(
     info,
     kind='topomap',
     ch_type='eeg',
-    pointsize=0,       # Small background points
+    pointsize=10,       # Small background points
     linewidth=0.0,
     title='EEG sensor distribution',
     show_names=True,
     show=False,
 )
+
+# %%
+import json
+from joblib import dump
+dump(info, './data/eeg_info.joblib')
+# json.dump(info.to_json_dict(), open('./data/eeg_info.json', 'w'))
+
+# plt.show()
+
+# %%
 
 ax = fig.axes[0]
 
